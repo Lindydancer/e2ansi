@@ -1,0 +1,15 @@
+Open a new terminal window. Resize to 50 x 22. Set font to Monaco 10 pt
+
+    export LESSOPEN="|/Applications/Emacs24.4.app/Contents/MacOS/Emacs --batch -Q -l ../bin/e2ansi-cat %s"
+
+    less -L hello.c
+
+Take screenshots using Shift + Cmd + 4 (release) SPACE.
+
+    cp ~/Desktop/Screen\ Shot\ XXXX-XX-XX\ at\ XX.XX.XX\ .png no_colors.png
+
+    less -R hello.c
+
+Take screenshots using Shift + Cmd + 4 (release) SPACE.
+
+    cp ~/Desktop/Screen\ Shot\ XXXX-XX-XX\ at\ XX.XX.XX\ .png with_colors.png
