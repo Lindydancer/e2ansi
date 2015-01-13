@@ -1,11 +1,11 @@
-;;; e2ansi.el --- Syntax highlighting support for terminals, powered by Emacs.
+;;; e2ansi.el --- Syntax highlighting support for `less', powered by Emacs.
 
 ;; Copyright (C) 2014 Anders Lindgren
 
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.0.0
+;; Version: 0.0.1
 ;; URL: https://github.com/Lindydancer/e2ansi
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -564,6 +564,10 @@ See `princ' for details concerning PRINTCHARFUN. When omitted
 ;; A better solution would be to leave all options after --script
 ;; for the script to parse.
 
+
+(defvar e2ansi-batch-major-mode-name nil
+  "The argument passed to the --mode command line parameter.")
+
 (defvar e2ansi-batch-help-text
   "The e2ansi package renders syntax highlighted Emacs buffers using
 ANSI escape sequences."
@@ -585,6 +589,10 @@ ANSI escape sequences."
      (lambda (arg)
        (setq e2ansi-color-class (intern arg)))
      "Color class, 'color' (default) or 'grayscale'")
+    ("--mode" :arg
+     (lambda (arg)
+       (setq e2ansi-batch-major-mode-name arg))
+     "Use major mode")
     ("--theme" :arg
      (lambda (arg)
        (load-theme (intern arg)))
@@ -626,7 +634,8 @@ See `e2ansi-batch-options' for options."
   (let ((res t))
     (while (and res
                 command-line-args-left
-                (string-match "^-" (car command-line-args-left)))
+                ;; The "." ensures that a single "-" isn't matched.
+                (string-match "^-." (car command-line-args-left)))
       (let* ((option (pop command-line-args-left))
              (desc (assoc option e2ansi-batch-options)))
         (if desc
@@ -650,10 +659,32 @@ See `e2ansi-batch-options' for options."
 (defun e2ansi-batch-convert ()
   "Convert the remaining files on the command line to ANSI format."
   (if (e2ansi-batch-parse-options)
-      (dolist (source command-line-args-left)
-        (unless (file-exists-p source)
-          (e2ansi-user-error "File not found: %s" source))
-        (find-file source)
+      (while command-line-args-left
+        (let ((source (pop command-line-args-left)))
+          (if (string= source "-")
+              (let ((buf (generate-new-buffer "*stdin*")))
+                (set-buffer buf)
+                (while (condition-case nil
+                           (let ((s (read-string "")))
+                             (insert s)
+                             (insert "\n")
+                             t)
+                         (error nil)))
+                (normal-mode))
+            (unless (file-exists-p source)
+              (e2ansi-user-error "File not found: %s" source))
+            (find-file source)))
+        ;; Override major mode, if --mode was specified.
+        (when e2ansi-batch-major-mode-name
+          (let ((mode nil))
+            (dolist (s1 (list e2ansi-batch-major-mode-name
+                              (concat e2ansi-batch-major-mode-name "-mode")))
+              (dolist (s2 (list s1 (downcase s1)))
+                (let ((candidate (intern s2)))
+                  (when (fboundp candidate)
+                    (setq mode candidate)))))
+            (when mode
+              (funcall mode))))
         (let ((noninteractive nil))
           (font-lock-mode 1))
         (e2ansi-print-buffer))
@@ -829,7 +860,7 @@ Entries earlier in the list take precedence."
 ;;   sequences.
 
 (defun e2ansi-color-values (name)
-  "Like `e2ansi-color-values' but work in batch mode as well.
+  "Like `color-values' but work in batch mode as well.
 
 In batch mode, or when `e2ansi-use-window-system-color-values' is
 nil, the color values are based on `color-name-rgb-alist'."
@@ -1043,8 +1074,9 @@ The list may also contain 'naked' faces, i.e. property and value elements.
 
 Ansi state is a list of (FOREGROUND BACKGROUND WEIGHT SLANT
 UNDERLINE), where the FOREGROUND and BACKGROUND is the ANSI color
-number or nil, WEIGHT is `bold' `light', or `normal'. SLANT is
-`normal' or `italic', and UNDERLINE is nil or t."
+number, a color value, or nil, WEIGHT is `bold' `light', or
+`normal'. SLANT is `normal' or `italic', and UNDERLINE is a
+non-nil value or `normal'."
   (let ((spec (e2ansi-faces-spec faces)))
     (let ((weight (plist-get spec :weight))
           (slant  (plist-get spec :slant)))
@@ -1072,7 +1104,7 @@ number or nil, WEIGHT is `bold' `light', or `normal'. SLANT is
           (setq foreground (- foreground 8))
           (setq weight 'bold))
         (list
-         foreground
+         (or foreground 'normal)
          ;; the function call never returns nil, drop the or (check this)
          (or (e2ansi-color-number-or-normal
               (plist-get spec :background)
@@ -1160,6 +1192,19 @@ necessarily has emitted previous text."
      (if (equal new-state e2ansi-null-ansi-state)
          ;; Reset all.
          (e2ansi-emit-ansi-code "0")
+       ;; Weight (must be first, as it might issue a reset).
+       (let ((old-weight (nth 2 old-state))
+             (new-weight (nth 2 new-state)))
+         (unless (eq new-weight old-weight)
+           (when (or (eq new-weight 'normal)
+                     (and (memq old-weight '(light bold))
+                          (memq new-weight '(light bold))))
+             ;; Some terminals don't understand "ESC [ 22 m". Instead
+             ;; a full reset is performed.
+             (e2ansi-emit-ansi-code "0")
+             (setq old-state e2ansi-null-ansi-state))
+           (cond ((eq new-weight 'bold)  (e2ansi-emit-ansi-code "1"))
+                 ((eq new-weight 'light) (e2ansi-emit-ansi-code "2")))))
        ;; Foreground
        (let ((color-number-or-values (nth 0 new-state)))
          (when (not (equal (nth 0 old-state) color-number-or-values))
@@ -1170,20 +1215,6 @@ necessarily has emitted previous text."
          (when (not (equal (nth 1 old-state) color-number-or-values))
            (e2ansi-emit-color-ansi-sequence color-number-or-values
                                             :background)))
-       ;; Weight
-       (let ((old-weight (nth 2 old-state))
-             (new-weight (nth 2 new-state)))
-         (unless (eq old-weight new-weight)
-           ;; Fix for systems not supporting light or bold. In that
-           ;; case, switching between light and bold doesn't reset the
-           ;; earlier weight. (This applies, for example, to Terminal
-           ;; in OS X.)
-           (if (and (memq old-weight '(light bold))
-                    (memq new-weight '(light bold)))
-               (e2ansi-emit-ansi-code "22"))
-           (e2ansi-emit-ansi-code (cond ((eq new-weight 'bold)  "1")
-                                        ((eq new-weight 'light) "2")
-                                        (t "22")))))
        ;; Italics
        (when (not (eq (nth 3 old-state) (nth 3 new-state)))
          (e2ansi-emit-ansi-code (if (nth 3 new-state) "3" "23")))

@@ -1,0 +1,20 @@
+[31m/*
+[31m * Example "Hello World" source file,
+[31m * written in C to demonstrade e2ansi,
+[31m * that provides Emacs powered syntax
+[31m * highlighting for terminals.
+[31m */[0m
+
+[1;34;42m#include[0;30;42m [32m<stdio.h>[0m
+
+[32mint[0m [1;34mmain[0m([32mvoid[0m)
+{
+  [32mint[0m [2;33mcount[0m;
+
+  [1;36mfor[0m (count = 0; count < 10; count++)
+  {
+    printf([32m"Hello World!\n"[0m);
+  }
+
+  [1;36mreturn[0m 0;
+}

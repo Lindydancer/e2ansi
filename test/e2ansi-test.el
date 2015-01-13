@@ -1,5 +1,27 @@
 ;;; e2ansi-test.el --- Tests for e2ansi.
 
+;; Copyright (C) 2014 Anders Lindgren
+
+;; Author: Anders Lindgren
+;; Keywords: faces, languages
+;; URL: https://github.com/Lindydancer/e2ansi
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Test and support code for e2ansi.
 
 ;;; Code:
 
@@ -127,7 +149,7 @@ from the actual color used in the terminal.\n\n")
 
 
 (defun e2ansi-test-list-closest-color (colors)
-  "List COLORS and the ansi color it is mapped to."
+  "List COLORS and the ansi color they are mapped to."
   (with-output-to-temp-buffer "*ColorsToAnsi*"
     (set-buffer standard-output)
     (insert "\
@@ -150,15 +172,22 @@ nil.)\n\n")
                                (format "color-%d" ansi-color-number)))
                      :foreground
                      ansi-color-number)))
-          (insert orig " " ansi "\n")))))
+          (insert orig " " ansi "\n"))))
     (display-buffer (current-buffer))))
 
 
-(defun e2ansi-test-collect-all-face-colors (number-of-colors ground-mode
+;; TODO: Rewrite so that this accepts the present number of colors
+;; (e.g. 256) rather than the exact.
+(defun e2ansi-test-collect-all-face-colors (number-of-colors
+                                            ground-mode
                                             &optional background)
+  "List of colors appearing in all defined faces, with restrictions.
+
+NUMBER-OF-COLORS is the exact number of colors in the face spec,
+GROUND-MODE is either :foreground and :background, and BACKGROUND
+\(if present) is `dark' or `light'."
   (let ((res '())
         (key (list 'min-colors number-of-colors)))
-    (message "----")
     (dolist (face (face-list))
       (let ((spec (face-default-spec face)))
         (dolist (entry spec)
@@ -169,7 +198,6 @@ nil.)\n\n")
                         (not background)
                         (not background-pair)
                         (eq (nth 1 background-pair) background)))
-              (message "%s" entry)
               (let ((plist (cdr entry)))
                 (when (consp (car-safe plist))
                   (setq plist (car plist)))
@@ -179,13 +207,47 @@ nil.)\n\n")
     res))
 
 
-(defun e2ansi-test-list-collected-faces (faces)
-  (list-colors-display faces))
+(defun e2ansi-test-list-collected-faces (number-of-colors
+                                         ground-mode
+                                         background)
+  (interactive
+   (list (read-number "Number of colors: " 88)
+         (if (y-or-n-p "Foreground")
+             :foreground
+           :background)
+         (let ((s (read-string "Background: ")))
+           (cond ((string= s "dark") 'dark)
+                 ((string= s "light") 'light)
+                 ((string= s "") nil)
+                 (t (error "Expected 'dark', 'light', or empty"))))))
+  (with-help-window "*CollectedColors*"
+    (with-current-buffer standard-output
+      (erase-buffer)
+      (insert "The following ")
+      (insert (if (eq ground-mode :foreground)
+                  "foreground"
+                "background"))
+      (insert " colors are found, when assuming that there are ")
+      (insert (number-to-string number-of-colors) "\n")
+      (insert "number of colors")
+      (when background
+        (insert "with a %s background" background))
+      (insert ".\n\n")
+      (list-colors-print (e2ansi-test-collect-all-face-colors
+                          number-of-colors ground-mode background))
+      (set-buffer-modified-p nil)
+      (setq truncate-lines t))))
 
+
+;; ----------------------------------------
+;; Example ANSI output.
+;;
 
 (defun e2ansi-test-show-colors-between (ground-mode from
                                                     &optional to &rest extra)
-  ""
+  "Insert examples of ANSI colors from color FROM to color TO.
+
+If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
   (while
       (progn
         (e2ansi-with-ansi-sequence
@@ -228,7 +290,7 @@ nil.)\n\n")
     (terpri)
     (e2ansi-test-show-colors-between :foreground 8 15)
     (terpri)
-    (princ "8 basic colors, bold (not supported by all):")
+    (princ "8 extra colors, bold (not supported by all):")
     (terpri)
     (e2ansi-test-show-colors-between :foreground 8 15 "1")
     (terpri)
@@ -306,6 +368,7 @@ nil.)\n\n")
   '((t :inherit e2ansi-test-underline-face)) "")
 (defface e2ansi-test-inherit-red-face
   '((t :inherit e2ansi-test-red-face)) "")
+
 
 ;;(let ((s "test1234"))
 ;;  (set-text-properties 0 6 '(face (e2ansi-test-inherit-underline-face

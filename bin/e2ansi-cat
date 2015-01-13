@@ -49,7 +49,9 @@ Usage:
 
   Or:
 
-    e2ansi-cat [options] file ...")
+    e2ansi-cat [options] file ...
+
+When `file' is `-', standard input is read.")
 
 (if (null command-line-args-left)
     (e2ansi-batch-usage)
