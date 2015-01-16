@@ -471,4 +471,7 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
   (should (equal (e2ansi-remove-plist-duplicates '(:a 1 :b 2)) '(:a 1 :b 2)))
   (should (equal (e2ansi-remove-plist-duplicates '(:a 1 :a 2)) '(:a 2))))
 
+
+(provide 'e2ansi-test)
+
 ;;; e2ansi-test.el ends here

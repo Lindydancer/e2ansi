@@ -1,25 +1,11 @@
 # e2ansi - Syntax highlighting support for `less`, powered by Emacs
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.0.1<br>
+*Version:* 0.0.2<br>
 *URL:* [https://github.com/Lindydancer/e2ansi](https://github.com/Lindydancer/e2ansi)<br>
 
---------------------
-
-NOTE: This is a very early release of this package. It has only
-been made public to gain some additional mileage.
-
-Please submit bug reports and feedback. However, before submitting
-the feature suggestions, please read through the "Future
-development" section below.
-
-Once I consider this package to be mature enough, I will publish it
-on Melpa and announce it to a wider audience.
-
---------------------
-
 *e2ansi* (Emacs to ANSI) provides syntax highlighting support for
-terminal windows.
+`less` and for other tools that run in terminal windows.
 
 The `e2ansi-cat` command line tool use ANSI escape sequences to
 syntax highlight source files. The actual syntax highlighting is
@@ -28,9 +14,9 @@ batch mode.
 
 Pager applications like `more` and `less` can be configured to
 automatically invoke `e2ansi-cat`, so that all viewed files will be
-syntax highlighted. A nice side effect is that any other
-conversion, like uncompressing files, is also automatically
-applied.
+syntax highlighted. A nice side effect is that other conversions
+that Emacs normally performs, like uncompressing files, are also
+automatically applied.
 
 ## Example
 
@@ -77,9 +63,40 @@ syntax):
     export "LESS=-R"
     export "MORE=-R"
 
-The above assumes that your init file is named `.emacs` and located
-in your home directory. It also assumes that it adds the location
-of the `e2ansi` package to the load path.
+The `LESSOPEN` environment variable is used by `less` to specify an
+input preprocessor. When using `e2ansi`, the first character should
+be a `|`, this signals to less that the input preprocessor prints
+the result on standard output.
+
+The above example assumes that your init file is named `.emacs` and
+located in your home directory. It also assumes that it adds the
+location of the `e2ansi` package to the load path.
+
+### `less` and pipes
+
+Modern versions of `less` can also use the input preprocessor when
+used in a pipe, for example:
+
+    svn diff | less
+
+For this, the `LESSOPEN` environment variable must start with `|-`.
+In this case, the file name `-` is passed to the input
+preprocessor, which is expected to read from standard input.
+
+    export "LESSOPEN=|-emacs --batch -l ~/.emacs -l bin/e2ansi-cat %s"
+
+Note: If your version of `less` is too old, using `|-` typically
+yields error like "/bin/bash: -/: invalid option".
+
+Also note that this makes it hard for Emacs to select a suitable
+major mode, as it can not base this on the file name extension.
+Typically, this result in incorrect or no highlighting.
+Fortunately, Emacs has the ability inspect the file content when
+selecting major mode, see `magic-mode-alist` for details. The
+support file `e2ansi-magic.el` adds some file types to the list,
+e.g. the `diff` format used by `svn`. You must explicitly load it
+to take effect, either using `-l e2ansi-magic.el` or by loading in
+from another file that is being loaded, like your init file.
 
 ## Emacs init files
 
@@ -143,6 +160,10 @@ the load path, the `../site-lisp` part compensate for this.
 * `e2ansi.el` -- Render a syntax highlighted buffer using ANSI
   escape sequences. This can be used both in normal interactive
   mode and in batch mode.
+* `e2ansi-magic.el` -- Set up `magic-mode-alist` to recognize file
+  formats based on the content of files. This is useful when using
+  `less` in pipes where Emacs can't use the file name extension to
+  select a suitable major mode.
 * `e2ansi-silent.el` -- Load this in batch mode to silence some
   messages from init files.
 * `bin/e2ansi-cat` -- The command line tool for converting files in
@@ -189,7 +210,7 @@ more information.
 
 ### Colors
 
-Both foreground and background colors can be rendred. Note that
+Both foreground and background colors can be rendered. Note that
 faces with the same background as the default face is not rendered
 with a background.
 
@@ -209,19 +230,6 @@ Attributes:
 * Italics
 * Underline
 
-## Terminal compatibility
-
-Most terminal or console programs support ANSI sequences to some
-extent. There is one notable exception to this, the MS-Windows
-cmd.exe console window.
-
-### MS-Windows support
-
-There exists packages that can be used to add ANSI capabilities to
-cmd.exe. Also, there are replacement console applications. In
-addition, some versions of `less`, like the one provided by the
-MSYS project, has (limited) native support for ANSI sequences.
-
 ## Operating system notes
 
 ### Mac OS X
@@ -235,6 +243,36 @@ You can download a modern version from
 [EmacsForOSX](http://emacsforosx.com). Once installed, the path to
 the Emacs binary is typically
 `/Applications/Emacs.app/Contents/MacOS/Emacs`.
+
+The version of `less` that is preinstalled on 10.9 is 418 dating
+from 2007. It supports the input preprocessors for named files (the
+`|` syntax) but not for pipes (The `|-` syntax).
+
+Fortunately, it's easy to download and build a new version of
+`less` from http://www.greenwoodsoftware.com/less
+
+Why Apple has not included a newer version, I do not understand.
+Some claim that Apple is actively avoiding software licensed under
+GPLv3+. However, `less` is available under two licenses so this
+should not be a problem. I guess it's down to laziness and opting
+to spend resources to invent yet another way of making menus
+semi-opaque rather than providing their users with up to date
+tools.
+
+### Microsoft Windows
+
+The command window in Microsoft Windows does not understand ANSI
+sequences. Fortunately, modern versions of `less` is capable of
+rendering ANSI sequences using colors.
+
+Unfortunately, I'm not aware of any up to date distribution of
+prebuilt versions of `less`. To make things worse, the build
+scripts provided with `less` is somewhat hard to use.
+
+In the document
+[LessWindows](https://github.com/Lindydancer/e2ansi/doc/LessWindows.md)
+I describe how to build `less` using `cmake`, a modern build
+system.
 
 ## Gallery
 
@@ -310,12 +348,12 @@ Faster response time:
 
 * By using a resident Emacs process, response time could be greatly
   reduced. Today, a bare-bone Emacs start fast, however, if you use
-  a heavy init file (like I do) the startup time goes up
+  a heavy init file (like I do) the start-up time goes up
   noticeably.
 * Incremental syntax highlighting. Today, the entire buffer is
   syntax highlighted at once, before it is converted to ANSI. By
   only run font-lock on parts of the buffer before printing it, a
-  receiving applicaiton like `less` could start faster.
+  receiving application like `less` could start faster.
 
 ### Miscellaneous
 
@@ -328,9 +366,6 @@ Various things.
 * Add unit tests for individual parts and full source file tests
   where the entire output is compared against a known ANSI
   representation, as done in my `faceup` package.
-* Make the low-level routine print the content, that way it should
-  be used directly by the batch commands. The other commands could
-  be implemented in terms of it.
 * Describe Emacs font specification selection process.
 * Better error handling when parsing command line arguments.
 * Customization support.
@@ -339,13 +374,21 @@ Various things.
   sometimes it would be shorter to simple, say, add underline, and
   without touching the other properties.
 * Security issues: Don't allow file local variables, or anything
-  else, allow arbitrary elisp code to be evecuted when a file is
+  else, allow arbitrary elisp code to be executed when a file is
   viewed.
 * Use floating point numbers when scoring, rather than scaling
   down.
 * Promote some of the "list" commands from the "test" package.
-* In `e2ansi-markup-to-buffer` move point rather than keeping track
+* In `e2ansi-print-buffer` move point rather than keeping track
   of the position using variables, this would simplify the code.
+* Inhibit rendering ANSI sequences when running `less` on a file
+  already containing ANSI sequences.
+* Add `--force` to force e2ansi to render a file using ANSI
+  sequences, even when such sequences are found in the file.
+
+## To Mark
+
+Thanks for writing `less`!
 
 
 ---

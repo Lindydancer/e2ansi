@@ -1,20 +1,20 @@
-[38;2;224;96;96m/*
-[38;2;224;96;96m * Example "Hello World" source file,
-[38;2;224;96;96m * written in C to demonstrade e2ansi,
-[38;2;224;96;96m * that provides Emacs powered syntax
-[38;2;224;96;96m * highlighting for terminals.
-[38;2;224;96;96m */[0m
+[38;2;178;34;34m/*
+[38;2;178;34;34m * Example "Hello World" source file,
+[38;2;178;34;34m * written in C to demonstrade e2ansi,
+[38;2;178;34;34m * that provides Emacs powered syntax
+[38;2;178;34;34m * highlighting for terminals.
+[38;2;178;34;34m */[0m
 
-[38;2;46;139;87;48;2;217;217;217m#include[39m [38;2;176;0;0;48;2;240;240;240m<stdio.h>[0m
+[38;2;72;61;139m#include[0m [38;2;139;34;82m<stdio.h>[0m
 
-[38;2;0;139;0mint[0m [38;2;0;0;255mmain[0m([38;2;0;139;0mvoid[0m)
+[38;2;34;139;34mint[0m [38;2;0;0;255mmain[0m([38;2;34;139;34mvoid[0m)
 {
-  [38;2;0;139;0mint[0m [38;2;184;134;11mcount[0m;
+  [38;2;34;139;34mint[0m [38;2;160;82;45mcount[0m;
 
-  [38;2;205;0;205mfor[0m (count = 0; count < 10; count++)
+  [38;2;160;32;240mfor[0m (count = 0; count < 10; count++)
   {
-    printf([38;2;176;0;0;48;2;240;240;240m"Hello World!\n"[0m);
+    printf([38;2;139;34;82m"Hello World!\n"[0m);
   }
 
-  [38;2;205;0;205mreturn[0m 0;
+  [38;2;160;32;240mreturn[0m 0;
 }

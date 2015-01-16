@@ -62,7 +62,7 @@ FILE.ansi-NUMBER-OF-COLORS-BACKGROUND."
            (with-current-buffer (find-file-noselect file)
              (let ((e2ansi-number-of-colors number-of-colors)
                    (e2ansi-background-mode background))
-               (e2ansi-markup-to-buffer buffer)))
+               (e2ansi-print-buffer (current-buffer) buffer)))
            (buffer-string)))
        (with-temp-buffer
          (insert-file-contents-literally reference-file)

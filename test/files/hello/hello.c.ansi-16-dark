@@ -5,7 +5,7 @@
 [1;31m * highlighting for terminals.
 [1;31m */[0m
 
-[37;42m#include[39m [37m<stdio.h>[0m
+[37m#include[0m [37m<stdio.h>[0m
 
 [37mint[0m [37mmain[0m([37mvoid[0m)
 {

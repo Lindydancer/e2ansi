@@ -1,11 +1,11 @@
 ;;; e2ansi.el --- Syntax highlighting support for `less', powered by Emacs.
 
-;; Copyright (C) 2014 Anders Lindgren
+;; Copyright (C) 2014,2015 Anders Lindgren
 
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; URL: https://github.com/Lindydancer/e2ansi
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -23,22 +23,8 @@
 
 ;;; Commentary:
 
-;; --------------------
-;;
-;; NOTE: This is a very early release of this package. It has only
-;; been made public to gain some additional mileage.
-;;
-;; Please submit bug reports and feedback. However, before submitting
-;; the feature suggestions, please read through the "Future
-;; development" section below.
-;;
-;; Once I consider this package to be mature enough, I will publish it
-;; on Melpa and announce it to a wider audience.
-;;
-;; --------------------
-
 ;; *e2ansi* (Emacs to ANSI) provides syntax highlighting support for
-;; terminal windows.
+;; `less' and for other tools that run in terminal windows.
 ;;
 ;; The `e2ansi-cat' command line tool use ANSI escape sequences to
 ;; syntax highlight source files. The actual syntax highlighting is
@@ -47,9 +33,9 @@
 ;;
 ;; Pager applications like `more' and `less' can be configured to
 ;; automatically invoke `e2ansi-cat', so that all viewed files will be
-;; syntax highlighted. A nice side effect is that any other
-;; conversion, like uncompressing files, is also automatically
-;; applied.
+;; syntax highlighted. A nice side effect is that other conversions
+;; that Emacs normally performs, like uncompressing files, are also
+;; automatically applied.
 ;;
 ;; Example:
 ;;
@@ -100,9 +86,40 @@
 ;;     export "LESS=-R"
 ;;     export "MORE=-R"
 ;;
-;; The above assumes that your init file is named `.emacs' and located
-;; in your home directory. It also assumes that it adds the location
-;; of the `e2ansi' package to the load path.
+;; The `LESSOPEN' environment variable is used by `less' to specify an
+;; input preprocessor. When using `e2ansi', the first character should
+;; be a `|', this signals to less that the input preprocessor prints
+;; the result on standard output.
+;;
+;; The above example assumes that your init file is named `.emacs' and
+;; located in your home directory. It also assumes that it adds the
+;; location of the `e2ansi' package to the load path.
+;;
+;; `less' and pipes:
+;;
+;; Modern versions of `less' can also use the input preprocessor when
+;; used in a pipe, for example:
+;;
+;;     svn diff | less
+;;
+;; For this, the `LESSOPEN' environment variable must start with `|-'.
+;; In this case, the file name `-' is passed to the input
+;; preprocessor, which is expected to read from standard input.
+;;
+;;     export "LESSOPEN=|-emacs --batch -l ~/.emacs -l bin/e2ansi-cat %s"
+;;
+;; Note: If your version of `less' is too old, using `|-' typically
+;; yields error like "/bin/bash: -/: invalid option".
+;;
+;; Also note that this makes it hard for Emacs to select a suitable
+;; major mode, as it can not base this on the file name extension.
+;; Typically, this result in incorrect or no highlighting.
+;; Fortunately, Emacs has the ability inspect the file content when
+;; selecting major mode, see `magic-mode-alist' for details. The
+;; support file `e2ansi-magic.el' adds some file types to the list,
+;; e.g. the `diff' format used by `svn'. You must explicitly load it
+;; to take effect, either using `-l e2ansi-magic.el' or by loading in
+;; from another file that is being loaded, like your init file.
 
 ;; Emacs init files:
 ;;
@@ -167,6 +184,11 @@
 ;;   escape sequences. This can be used both in normal interactive
 ;;   mode and in batch mode.
 ;;
+;; * `e2ansi-magic.el' -- Set up `magic-mode-alist' to recognize file
+;;   formats based on the content of files. This is useful when using
+;;   `less' in pipes where Emacs can't use the file name extension to
+;;   select a suitable major mode.
+;;
 ;; * `e2ansi-silent.el' -- Load this in batch mode to silence some
 ;;   messages from init files.
 ;;
@@ -217,7 +239,7 @@
 ;;
 ;; Colors:
 ;;
-;; Both foreground and background colors can be rendred. Note that
+;; Both foreground and background colors can be rendered. Note that
 ;; faces with the same background as the default face is not rendered
 ;; with a background.
 ;;
@@ -242,19 +264,6 @@
 ;;
 ;; * Underline
 
-;; Terminal compatibility:
-;;
-;; Most terminal or console programs support ANSI sequences to some
-;; extent. There is one notable exception to this, the MS-Windows
-;; cmd.exe console window.
-;;
-;; MS-Windows support:
-;;
-;; There exists packages that can be used to add ANSI capabilities to
-;; cmd.exe. Also, there are replacement console applications. In
-;; addition, some versions of `less', like the one provided by the
-;; MSYS project, has (limited) native support for ANSI sequences.
-
 ;; Operating system notes:
 ;;
 ;; Mac OS X:
@@ -268,6 +277,36 @@
 ;; [EmacsForOSX](http://emacsforosx.com). Once installed, the path to
 ;; the Emacs binary is typically
 ;; `/Applications/Emacs.app/Contents/MacOS/Emacs'.
+;;
+;; The version of `less' that is preinstalled on 10.9 is 418 dating
+;; from 2007. It supports the input preprocessors for named files (the
+;; `|' syntax) but not for pipes (The `|-' syntax).
+;;
+;; Fortunately, it's easy to download and build a new version of
+;; `less' from http://www.greenwoodsoftware.com/less
+;;
+;; Why Apple has not included a newer version, I do not understand.
+;; Some claim that Apple is actively avoiding software licensed under
+;; GPLv3+. However, `less' is available under two licenses so this
+;; should not be a problem. I guess it's down to laziness and opting
+;; to spend resources to invent yet another way of making menus
+;; semi-opaque rather than providing their users with up to date
+;; tools.
+;;
+;; Microsoft Windows:
+;;
+;; The command window in Microsoft Windows does not understand ANSI
+;; sequences. Fortunately, modern versions of `less' is capable of
+;; rendering ANSI sequences using colors.
+;;
+;; Unfortunately, I'm not aware of any up to date distribution of
+;; prebuilt versions of `less'. To make things worse, the build
+;; scripts provided with `less' is somewhat hard to use.
+;;
+;; In the document
+;; [LessWindows](https://github.com/Lindydancer/e2ansi/doc/LessWindows.md)
+;; I describe how to build `less' using `cmake', a modern build
+;; system.
 
 ;; Gallery:
 ;;
@@ -345,13 +384,13 @@
 ;;
 ;; * By using a resident Emacs process, response time could be greatly
 ;;   reduced. Today, a bare-bone Emacs start fast, however, if you use
-;;   a heavy init file (like I do) the startup time goes up
+;;   a heavy init file (like I do) the start-up time goes up
 ;;   noticeably.
 ;;
 ;; * Incremental syntax highlighting. Today, the entire buffer is
 ;;   syntax highlighted at once, before it is converted to ANSI. By
 ;;   only run font-lock on parts of the buffer before printing it, a
-;;   receiving applicaiton like `less' could start faster.
+;;   receiving application like `less' could start faster.
 ;;
 ;; Miscellaneous:
 ;;
@@ -367,10 +406,6 @@
 ;;   where the entire output is compared against a known ANSI
 ;;   representation, as done in my `faceup' package.
 ;;
-;; * Make the low-level routine print the content, that way it should
-;;   be used directly by the batch commands. The other commands could
-;;   be implemented in terms of it.
-;;
 ;; * Describe Emacs font specification selection process.
 ;;
 ;; * Better error handling when parsing command line arguments.
@@ -383,7 +418,7 @@
 ;;   without touching the other properties.
 ;;
 ;; * Security issues: Don't allow file local variables, or anything
-;;   else, allow arbitrary elisp code to be evecuted when a file is
+;;   else, allow arbitrary elisp code to be executed when a file is
 ;;   viewed.
 ;;
 ;; * Use floating point numbers when scoring, rather than scaling
@@ -391,8 +426,18 @@
 ;;
 ;; * Promote some of the "list" commands from the "test" package.
 ;;
-;; * In `e2ansi-markup-to-buffer' move point rather than keeping track
+;; * In `e2ansi-print-buffer' move point rather than keeping track
 ;;   of the position using variables, this would simplify the code.
+;;
+;; * Inhibit rendering ANSI sequences when running `less' on a file
+;;   already containing ANSI sequences.
+;;
+;; * Add `--force' to force e2ansi to render a file using ANSI
+;;   sequences, even when such sequences are found in the file.
+
+;; To Mark:
+;;
+;; Thanks for writing `less'!
 
 ;;; Code:
 
@@ -439,7 +484,7 @@ Either `color' or `grayscale'.")
 (defvar e2ansi-line-by-line t
   "When non-nil, extra ANSI codes are emitted at the start of each line.
 
-The advantage with this is that the output is highlited correctly
+The advantage with this is that the output is highlighted correctly
 even if only parts of it is printed to a terminal. In addition,
 pager applications like `more' and `less' don't lose highlighting
 when scrolling.")
@@ -464,7 +509,7 @@ when scrolling.")
   "Alist of basic ANSI colors and the color number.")
 
 
-;; In 8 color mode, all builtin Emacs types use the basic ANSI colors,
+;; In 8 color mode, all built-in Emacs types use the basic ANSI colors,
 ;; or a suitable one is found using the standard algorithm. In 256
 ;; color mode, there are plenty of colors to choose from. The problem
 ;; is the 16 color mode, where the faces are specified in a variety of
@@ -472,7 +517,7 @@ when scrolling.")
 ;;
 ;; Note: The main intention of this is to ensure that the default
 ;; Emacs setting in 16 color mode look OK:ish. If you really would
-;; like to tweek how faces are rendered, I would suggest writing a
+;; like to tweak how faces are rendered, I would suggest writing a
 ;; custom theme.
 (defvar e2ansi-color-override-alist
   '(((16 light) . (("rosybrown" . "red"))))
@@ -510,7 +555,7 @@ See `e2ansi-ansi-state' for details on ansi states.")
   (let ((buffer (get-buffer-create "*e2ansi*")))
     (with-current-buffer buffer
       (delete-region (point-min) (point-max)))
-    (e2ansi-markup-to-buffer buffer)
+    (e2ansi-print-buffer (current-buffer) buffer)
     (display-buffer buffer)))
 
 
@@ -533,24 +578,12 @@ xxx is the file name associated with the buffer."
     (setq file-name (concat (buffer-file-name) ".ansi")))
   (let ((buffer (current-buffer)))
     (with-temp-buffer
-      (e2ansi-markup-to-buffer (current-buffer) buffer)
+      (e2ansi-print-buffer buffer (current-buffer))
       ;; Note: Must set `require-final-newline' inside
       ;; `with-temp-buffer', otherwise the value will be overridden by
       ;; the buffers local value.
       (let ((require-final-newline nil))
         (write-file file-name t)))))
-
-
-;;;###autoload
-(defun e2ansi-print-buffer (&optional printcharfun)
-  "Print the ANSI representation of the buffer to PRINTCHARFUN.
-
-See `princ' for details concerning PRINTCHARFUN. When omitted
-`standard-output' is used."
-  (let ((buffer (current-buffer)))
-    (with-temp-buffer
-      (e2ansi-markup-to-buffer (current-buffer) buffer)
-      (princ (buffer-substring (point-min) (point-max)) printcharfun))))
 
 
 ;; ----------------------------------------------------------------------
@@ -685,9 +718,18 @@ See `e2ansi-batch-options' for options."
                     (setq mode candidate)))))
             (when mode
               (funcall mode))))
-        (let ((noninteractive nil))
-          (font-lock-mode 1))
-        (e2ansi-print-buffer))
+        (save-excursion
+          (goto-char (point-min))
+          ;; Don't highlight buffers containing existing ansi
+          ;; sequences.
+          ;;
+          ;; TODO: Implement some kind of "--force" option to override
+          ;; this.
+          (if (search-forward "\x1b[" (point-max) t)
+              (princ (buffer-string))
+            (let ((noninteractive nil))
+              (font-lock-mode 1))
+            (e2ansi-print-buffer (current-buffer)))))
     (e2ansi-batch-usage)))
 
 
@@ -699,7 +741,7 @@ See `e2ansi-batch-options' for options."
 ;; color support doesn't exist. (Almost) all face spec handling has
 ;; been reimplemented below, with the added twist that
 ;; `e2ansi-number-of-colors', `e2ansi-background-mode', and
-;; `e2ansi-color-class' and used to decide whic face spec to pick.
+;; `e2ansi-color-class' and used to decide which face spec to pick.
 
 (defun e2ansi-join-spec (spec1 spec2)
   "Join SPEC1 and SPEC2, the latter takes precedence."
@@ -774,7 +816,7 @@ Entries towards the of the the list take precedence."
            plist))))
 
 
-;; This tries to minic the logic in `face-spec-recalc', plus "inherit"
+;; This tries to mimic the logic in `face-spec-recalc', plus "inherit"
 ;; logic.
 (defun e2ansi-face-spec (face)
   "The face specification for FACE suitable to be rendered as ANSI.
@@ -844,7 +886,7 @@ Entries earlier in the list take precedence."
 ;;
 ;;   The bright colors are typically accessed by setting the bold
 ;;   attribute, and are only available for the foreground color. In
-;;   some cases, not all colors appears to be availiable as bright
+;;   some cases, not all colors appears to be available as bright
 ;;   (but we ignore this.)
 ;;
 ;; * 256 colors, consisting of the 8 + 8 basic colors, 6*6*6 = 216
@@ -939,7 +981,7 @@ here correspond to the values used in xterm.")
                  (nth g e2ansi-color-cube-steps)
                  (nth b e2ansi-color-cube-steps))))
         (t
-         ;; Greyscale
+         ;; Grayscale
          (nth (- number #xE8) e2ansi-greyscale-colors))))
 
 
@@ -948,7 +990,7 @@ here correspond to the values used in xterm.")
 The lower the value, the better."
   ;; This calculates the squared distance between the two colors, in
   ;; the three-dimensional color cube. By returning the squared
-  ;; distance, rather than the disatance itself, a square root
+  ;; distance, rather than the distance itself, a square root
   ;; operation is reduced.
   (let ((sum 0))
     (while candidate-rgb
@@ -1117,35 +1159,37 @@ non-nil value or `normal'."
 
 
 (defvar e2ansi-seen-ansi-sequence nil)
+(defvar e2ansi-with-ansi-sequence-destination nil)
 
-(defmacro e2ansi-with-ansi-sequence (&rest body)
+(defmacro e2ansi-with-ansi-sequence (dest &rest body)
   "Create block where any number of ANSI codes could be emitted.
 Evaluates BODY. Emit one ANSI sequence consisting of all ANSI
 codes passed to `e2ansi-emit-ansi-code'."
-  `(let ((e2ansi-seen-ansi-sequence nil))
+  (declare (indent 1))
+  `(let ((e2ansi-with-ansi-sequence-destination dest)
+         (e2ansi-seen-ansi-sequence nil))
      ,@body
      (when e2ansi-seen-ansi-sequence
-       (insert "m"))))
+       (princ "m" dest))))
 
 
-(defun e2ansi-copy (start end to-buffer)
-  "Insert the text between START and END into TO-BUFFER"
+(defun e2ansi-print (start end &optional dest)
+  "Print the text between START and END to DEST."
   (let ((s (buffer-substring-no-properties start end)))
-    (with-current-buffer to-buffer
-      (insert s))))
+    (princ s dest)))
 
 
 (defun e2ansi-emit-ansi-code (code)
-  "Emit an ANSI escape code.
+  "Emit an ANSI escape code to `standard-output'.
 
 This is assumed to be called from within the body of
 `e2ansi-with-ansi-sequence'. This ANSI escape code can be
 combined using the semicolon ANSI syntax with other escape codes
 emitted from the same block."
   (if e2ansi-seen-ansi-sequence
-      (insert ";")
-    (insert "\x1b["))
-  (insert code)
+      (princ ";" e2ansi-with-ansi-sequence-destination)
+    (princ "\x1b[" e2ansi-with-ansi-sequence-destination))
+  (princ code e2ansi-with-ansi-sequence-destination)
   (setq e2ansi-seen-ansi-sequence t))
 
 
@@ -1181,50 +1225,51 @@ GROUND-MODE is :foreground or :background."
             (number-to-string color-number-or-values))))))
 
 
-(defun e2ansi-emit-ansi-sequences (old-state new-state force-reset)
-  "Emit ANSI sequence to go from OLD-STATE to NEW-STATE.
+(defun e2ansi-emit-ansi-sequences (old-state new-state force-reset dest)
+  "Print ANSI sequence to go from OLD-STATE to NEW-STATE to DEST.
 
 If FORCE-START is non-nil, don't assume that the output terminal
 necessarily has emitted previous text."
   (when (or force-reset
             (not (equal old-state new-state)))
-    (e2ansi-with-ansi-sequence
-     (if (equal new-state e2ansi-null-ansi-state)
-         ;; Reset all.
-         (e2ansi-emit-ansi-code "0")
-       ;; Weight (must be first, as it might issue a reset).
-       (let ((old-weight (nth 2 old-state))
-             (new-weight (nth 2 new-state)))
-         (unless (eq new-weight old-weight)
-           (when (or (eq new-weight 'normal)
-                     (and (memq old-weight '(light bold))
-                          (memq new-weight '(light bold))))
-             ;; Some terminals don't understand "ESC [ 22 m". Instead
-             ;; a full reset is performed.
-             (e2ansi-emit-ansi-code "0")
-             (setq old-state e2ansi-null-ansi-state))
-           (cond ((eq new-weight 'bold)  (e2ansi-emit-ansi-code "1"))
-                 ((eq new-weight 'light) (e2ansi-emit-ansi-code "2")))))
-       ;; Foreground
-       (let ((color-number-or-values (nth 0 new-state)))
-         (when (not (equal (nth 0 old-state) color-number-or-values))
-           (e2ansi-emit-color-ansi-sequence color-number-or-values
-                                            :foreground)))
-       ;; Background
-       (let ((color-number-or-values (nth 1 new-state)))
-         (when (not (equal (nth 1 old-state) color-number-or-values))
-           (e2ansi-emit-color-ansi-sequence color-number-or-values
-                                            :background)))
-       ;; Italics
-       (when (not (eq (nth 3 old-state) (nth 3 new-state)))
-         (e2ansi-emit-ansi-code (if (nth 3 new-state) "3" "23")))
-       ;; Underline
-       (when (not (eq (nth 4 old-state) (nth 4 new-state)))
-         (e2ansi-emit-ansi-code (if (eq (nth 4 new-state) t) "4" "24")))))))
+    (e2ansi-with-ansi-sequence dest
+      (if (equal new-state e2ansi-null-ansi-state)
+          ;; Reset all.
+          (e2ansi-emit-ansi-code "0")
+        ;; Weight (must be first, as it might issue a reset).
+        (let ((old-weight (nth 2 old-state))
+              (new-weight (nth 2 new-state)))
+          (unless (eq new-weight old-weight)
+            (when (or (eq new-weight 'normal)
+                      (and (memq old-weight '(light bold))
+                           (memq new-weight '(light bold))))
+              ;; Some terminals don't understand "ESC [ 22 m". Instead
+              ;; a full reset is performed.
+              (e2ansi-emit-ansi-code "0")
+              (setq old-state e2ansi-null-ansi-state))
+            (cond ((eq new-weight 'bold)  (e2ansi-emit-ansi-code "1"))
+                  ((eq new-weight 'light) (e2ansi-emit-ansi-code "2")))))
+        ;; Foreground
+        (let ((color-number-or-values (nth 0 new-state)))
+          (when (not (equal (nth 0 old-state) color-number-or-values))
+            (e2ansi-emit-color-ansi-sequence color-number-or-values
+                                             :foreground)))
+        ;; Background
+        (let ((color-number-or-values (nth 1 new-state)))
+          (when (not (equal (nth 1 old-state) color-number-or-values))
+            (e2ansi-emit-color-ansi-sequence color-number-or-values
+                                             :background)))
+        ;; Italics
+        (when (not (eq (nth 3 old-state) (nth 3 new-state)))
+          (e2ansi-emit-ansi-code (if (nth 3 new-state) "3" "23")))
+        ;; Underline
+        (when (not (eq (nth 4 old-state) (nth 4 new-state)))
+          (e2ansi-emit-ansi-code (if (eq (nth 4 new-state) t) "4" "24")))))))
 
 
-(defun e2ansi-markup-to-buffer (to-buffer &optional buffer)
-  "Convert content of BUFFER to ANSI and insert in TO-BUFFER."
+;;;###autoload
+(defun e2ansi-print-buffer (&optional buffer dest)
+  "Convert content of BUFFER to ANSI and print to DEST."
   (save-excursion
     (if buffer
         (set-buffer buffer))
@@ -1253,7 +1298,7 @@ necessarily has emitted previous text."
                           (< next-line-position pos))
                   (setq pos next-line-position))))
             pos)
-        (e2ansi-copy last-pos pos to-buffer)
+        (e2ansi-print last-pos pos dest)
         (setq last-pos pos)
         (let ((faces (get-text-property pos 'face)))
           (unless (listp faces)
@@ -1268,11 +1313,10 @@ necessarily has emitted previous text."
               (unless (equal ansi-state new-state)
                 (setq force-reset t))
               (setq ansi-state e2ansi-null-ansi-state))
-            (with-current-buffer to-buffer
-              (e2ansi-emit-ansi-sequences ansi-state new-state force-reset)
-              (setq ansi-state new-state)))))
+            (e2ansi-emit-ansi-sequences ansi-state new-state force-reset dest)
+            (setq ansi-state new-state))))
       ;; Insert whatever is left after the last face change.
-      (e2ansi-copy last-pos (point-max) to-buffer))))
+      (e2ansi-print last-pos (point-max) dest))))
 
 
 ;; Some basic facts:

@@ -1,20 +1,20 @@
-[38;5;167m/*
-[38;5;167m * Example "Hello World" source file,
-[38;5;167m * written in C to demonstrade e2ansi,
-[38;5;167m * that provides Emacs powered syntax
-[38;5;167m * highlighting for terminals.
-[38;5;167m */[0m
+[38;5;208m/*
+[38;5;208m * Example "Hello World" source file,
+[38;5;208m * written in C to demonstrade e2ansi,
+[38;5;208m * that provides Emacs powered syntax
+[38;5;208m * highlighting for terminals.
+[38;5;208m */[0m
 
-[38;5;29;48;5;253m#include[39m [38;5;124;48;5;255m<stdio.h>[0m
+[38;5;152m#include[0m [38;5;216m<stdio.h>[0m
 
-[38;5;28mint[0m [38;5;21mmain[0m([38;5;28mvoid[0m)
+[38;5;120mint[0m [38;5;117mmain[0m([38;5;120mvoid[0m)
 {
-  [38;5;28mint[0m [38;5;136mcount[0m;
+  [38;5;120mint[0m [38;5;222mcount[0m;
 
-  [38;5;164mfor[0m (count = 0; count < 10; count++)
+  [38;5;51mfor[0m (count = 0; count < 10; count++)
   {
-    printf([38;5;124;48;5;255m"Hello World!\n"[0m);
+    printf([38;5;216m"Hello World!\n"[0m);
   }
 
-  [38;5;164mreturn[0m 0;
+  [38;5;51mreturn[0m 0;
 }
