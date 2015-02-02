@@ -5,7 +5,6 @@
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; URL: https://github.com/Lindydancer/e2ansi
-
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -303,6 +302,7 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
     (display-buffer (current-buffer))))
 
 
+
 ;; ----------------------------------------------------------------------
 ;; Test themes
 ;;
@@ -449,6 +449,23 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
 ;; ----------------------------------------------------------------------
 ;; Ert test cases.
 ;;
+
+(defun e2ansi-test-set-face (str &rest face-properties)
+  (set-text-properties 0 (length str) (cons 'face face-properties) str)
+  str)
+
+
+(ert-deftest e2ansi-test-strings ()
+  (let ((plain "plain")
+        (def (e2ansi-test-set-face "default" 'default))
+        (red (e2ansi-test-set-face "red" 'e2ansi-test-red-face)))
+    (should (equal (e2ansi-string-to-ansi plain) "plain"))
+    ;; In some font-lock packages, the face `default' is used to
+    ;; ensure that later rules don't overwrite parts of a string. One
+    ;; such example is `cmake-font-lock'.
+    (should (equal (e2ansi-string-to-ansi def) "default"))
+    (should (equal (e2ansi-string-to-ansi red) "\x1b[31mred\x1b[0m"))))
+
 
 (ert-deftest e2ansi-test-face-spec ()
   (should (equal (e2ansi-face-spec 'e2ansi-test-blue-green-face)

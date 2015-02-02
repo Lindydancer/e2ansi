@@ -1,0 +1,1 @@
+This is encoded using UTF8: åäö

@@ -1,0 +1,65 @@
+History of e2ansi
+=================
+
+On Stackoverflow, 2014-06-20, the user "Peter" asked the following
+question (http://stackoverflow.com/questions/24329865):
+
+    "Using emacs in batch mode to dump a file with syntax highlighting?
+
+I'd like to use emacs in some kind of batch mode to just render a file
+with syntax highlighting and exit. Specifically, I want to dump the
+fontified buffer with ANSI escape codes so that it shows up reasonably
+syntax-highlighted on my terminal. Is there any way to do this?
+
+The ansi-lpr.el library seems to be kind of along the lines of what I
+want, but the output isn't colorified. I can't figure out how to get
+over that final hurdle -- there are a lot of modules to digest ANSI
+escape codes into Emacs text properties (e.g. ansi-color.el) but I
+haven't found anything that does the reverse. If anyone can point me
+to something that does, I think I can piece together the rest.
+
+Alternatively, I've seen some hacky approaches like this answer (using
+script and capturing the output) but in my experiments that approach
+has seemed unlikely to be fruitful -- you get tons of undesirable
+control sequences mixed in with the highlighted text.
+
+The overarching motivation here is to use emacs in a $LESSOPEN pipe to
+get syntax highlighting when I page files. In case you're going to say
+it, I've tried and "just page files in Emacs" is not acceptable for
+me."
+
+
+Some months later, I posted the following:
+
+
+I'm glad to announce a new package, **e2ansi**, that (hopefully) does
+what you asked for.
+
+The package provides a command-line tool `e2ansi-cat` that starts
+Emacs in batch mode, opens files, syntax highlight them (using
+font-lock), and creates ANSI-colored versions of the syntax
+highlighted files.
+
+You can integrate this into `less` by setting the following variables
+to, for example:
+
+    export "LESSOPEN=|emacs --batch -Q -l ~/.emacs -l bin/e2ansi-cat %s"
+    export "LESS=-r -j20"
+    export MORE=$LESS
+
+The end result looks like the following:
+
+![Example][1]
+
+You can vary the colors and attributes like bold, underline, and
+italics by using a suitable Emacs theme.
+
+The e2ansi package is located at https://github.com/Lindydancer/e2ansi
+
+### Personal note
+
+I would like to thank you for posting this question, it directly
+inspired me to write e2ansi.
+
+
+  [1]: http://i.stack.imgur.com/w28c5.png

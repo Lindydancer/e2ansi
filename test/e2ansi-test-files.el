@@ -34,7 +34,7 @@
 
 (defvar e2ansi-test-files-dir (faceup-this-file-directory)
   "The directory this file is located in.")
-
+(prefer-coding-system 'utf-8)
 
 (defun e2ansi-test-files-reference-file (file number-of-colors background)
   (concat file
@@ -60,46 +60,43 @@ FILE.ansi-NUMBER-OF-COLORS-BACKGROUND."
        (with-temp-buffer
          (let ((buffer (current-buffer)))
            (with-current-buffer (find-file-noselect file)
+             (let ((noninteractive nil))
+               (font-lock-mode 1))
              (let ((e2ansi-number-of-colors number-of-colors)
                    (e2ansi-background-mode background))
                (e2ansi-print-buffer (current-buffer) buffer)))
            (buffer-string)))
        (with-temp-buffer
-         (insert-file-contents-literally reference-file)
+         (insert-file-contents reference-file)
          (buffer-string))))))
 
 
 (faceup-defexplainer e2ansi-test-file)
 
-(defvar e2ansi-test-files '("files/hello/hello.c"))
+(defvar e2ansi-test-files '("files/hello/hello.c"
+                            "files/utf8/utf8.txt"))
 
 
-;; TODO: Implement a "generate reference files for this file", this
-;; sledge hammer is too big. Maybe we need a function to generate a
-;; single reference file.
-;;
-;; Beware: There is a bug in Emacs (I think, but haven't had time to
-;; investigate) that writes the content of the wrong buffer if the
-;; destination file already existed.
-(defun e2ansi-test-files-generate (&optional all)
-  "Create new reference files.
-If ALL is non-nil, overwrite existing reference files."
-  (interactive "P")
+(defun e2ansi-test-generate-reference-files ()
+  "Generate reference files for file in current buffer."
+  (interactive)
   (dolist (number-of-colors '(8 16 256 :rgb8))
     (dolist (background '(dark light))
-      (dolist (file e2ansi-test-files)
-        (setq file (concat e2ansi-test-files-dir file))
-        (let ((reference-file
-               (e2ansi-test-files-reference-file
-                file number-of-colors background)))
-          (if (or (not (file-exists-p reference-file))
-                  all)
-              (save-window-excursion
-                (save-excursion
-                  (find-file file)
-                  (let ((e2ansi-number-of-colors number-of-colors)
-                        (e2ansi-background-mode background))
-                    (e2ansi-write-file reference-file))))))))))
+      (let ((reference-file
+             (e2ansi-test-files-reference-file
+              (buffer-file-name) number-of-colors background)))
+        (let ((e2ansi-number-of-colors number-of-colors)
+              (e2ansi-background-mode background))
+          (e2ansi-write-file reference-file))))))
+
+
+(defun e2ansi-test-files-generate ()
+  "Create new reference files."
+  (interactive "P")
+  (dolist (file e2ansi-test-files)
+    (setq file (concat e2ansi-test-files-dir file))
+    (with-current-buffer (find-file-noselect file)
+      (e2ansi-test-generate-reference-files))))
 
 
 (ert-deftest e2ansi-file-test ()

@@ -1,7 +1,7 @@
 # e2ansi - Syntax highlighting support for `less`, powered by Emacs
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.0.2<br>
+*Version:* 0.0.3<br>
 *URL:* [https://github.com/Lindydancer/e2ansi](https://github.com/Lindydancer/e2ansi)<br>
 
 *e2ansi* (Emacs to ANSI) provides syntax highlighting support for
@@ -168,6 +168,8 @@ the load path, the `../site-lisp` part compensate for this.
   messages from init files.
 * `bin/e2ansi-cat` -- The command line tool for converting files in
   batch mode.
+* `bin/e2ansi-info` -- Print various ANSI-related information to
+  help you trim your ANSI environment.
 
 ## Background
 
@@ -379,16 +381,18 @@ Various things.
 * Use floating point numbers when scoring, rather than scaling
   down.
 * Promote some of the "list" commands from the "test" package.
-* In `e2ansi-print-buffer` move point rather than keeping track
-  of the position using variables, this would simplify the code.
 * Inhibit rendering ANSI sequences when running `less` on a file
   already containing ANSI sequences.
 * Add `--force` to force e2ansi to render a file using ANSI
   sequences, even when such sequences are found in the file.
+* Mention `||-` in the documentation.
+* Investigate why backgrounds spanning mutiple lines misbehaves in
+  Terminal.app (and other terminals). Maybe always reset the
+  background at the end of each line?
 
-## To Mark
+## Acknowledgment
 
-Thanks for writing `less`!
+Mark, thanks for writing `less`!
 
 
 ---

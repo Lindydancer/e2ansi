@@ -5,7 +5,7 @@
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.0.2
+;; Version: 0.0.3
 ;; URL: https://github.com/Lindydancer/e2ansi
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -194,6 +194,9 @@
 ;;
 ;; * `bin/e2ansi-cat' -- The command line tool for converting files in
 ;;   batch mode.
+;;
+;; * `bin/e2ansi-info' -- Print various ANSI-related information to
+;;   help you trim your ANSI environment.
 
 ;; Background:
 ;;
@@ -426,18 +429,21 @@
 ;;
 ;; * Promote some of the "list" commands from the "test" package.
 ;;
-;; * In `e2ansi-print-buffer' move point rather than keeping track
-;;   of the position using variables, this would simplify the code.
-;;
 ;; * Inhibit rendering ANSI sequences when running `less' on a file
 ;;   already containing ANSI sequences.
 ;;
 ;; * Add `--force' to force e2ansi to render a file using ANSI
 ;;   sequences, even when such sequences are found in the file.
-
-;; To Mark:
 ;;
-;; Thanks for writing `less'!
+;; * Mention `||-' in the documentation.
+;;
+;; * Investigate why backgrounds spanning mutiple lines misbehaves in
+;;   Terminal.app (and other terminals). Maybe always reset the
+;;   background at the end of each line?
+
+;; Acknowledgment:
+;;
+;; Mark, thanks for writing `less'!
 
 ;;; Code:
 
@@ -560,11 +566,15 @@ See `e2ansi-ansi-state' for details on ansi states.")
 
 
 ;;;###autoload
-(defun e2ansi-write-file (&optional file-name)
+(defun e2ansi-write-file (&optional file-name confirm)
   "Save the e2ansi representation of the current buffer to the file FILE-NAME.
 
 Unless a name is given, the file will be named xxx.ansi, where
-xxx is the file name associated with the buffer."
+xxx is the file name associated with the buffer.
+
+If CONFIRM is non-nil, ask for confirmation before overwriting an
+existing file. Interactively, confirmation is required unless you
+supply a prefix argument."
   (interactive
    (let ((suggested-name (and (buffer-file-name)
                               (concat (buffer-file-name)
@@ -573,7 +583,8 @@ xxx is the file name associated with the buffer."
                            default-directory
                            suggested-name
                            nil
-                           (file-name-nondirectory suggested-name)))))
+                           (file-name-nondirectory suggested-name))
+           (not current-prefix-arg))))
   (unless file-name
     (setq file-name (concat (buffer-file-name) ".ansi")))
   (let ((buffer (current-buffer)))
@@ -582,8 +593,13 @@ xxx is the file name associated with the buffer."
       ;; Note: Must set `require-final-newline' inside
       ;; `with-temp-buffer', otherwise the value will be overridden by
       ;; the buffers local value.
-      (let ((require-final-newline nil))
-        (write-file file-name t)))))
+      ;;
+      ;; Clear `window-size-change-functions' as a workaround for
+      ;; Emacs bug#19576 (`write-file' saves the wrong buffer if a
+      ;; function in the list change current buffer).
+      (let ((require-final-newline nil)
+            (window-size-change-functions '()))
+        (write-file file-name confirm)))))
 
 
 ;; ----------------------------------------------------------------------
@@ -1166,11 +1182,11 @@ non-nil value or `normal'."
 Evaluates BODY. Emit one ANSI sequence consisting of all ANSI
 codes passed to `e2ansi-emit-ansi-code'."
   (declare (indent 1))
-  `(let ((e2ansi-with-ansi-sequence-destination dest)
+  `(let ((e2ansi-with-ansi-sequence-destination ,dest)
          (e2ansi-seen-ansi-sequence nil))
      ,@body
      (when e2ansi-seen-ansi-sequence
-       (princ "m" dest))))
+       (princ "m" ,dest))))
 
 
 (defun e2ansi-print (start end &optional dest)
@@ -1267,12 +1283,22 @@ necessarily has emitted previous text."
           (e2ansi-emit-ansi-code (if (eq (nth 4 new-state) t) "4" "24")))))))
 
 
+(defun e2ansi-min (&rest args)
+  "Like `min' but ignores nil arguments.
+Return nil when applied to no non-nil arguments."
+  (let ((res nil))
+    (dolist (value args)
+      (if res
+          (when value
+            (setq res (min res value)))
+        (setq res value)))
+    res))
+
+
 ;;;###autoload
 (defun e2ansi-print-buffer (&optional buffer dest)
   "Convert content of BUFFER to ANSI and print to DEST."
-  (save-excursion
-    (if buffer
-        (set-buffer buffer))
+  (with-current-buffer (or buffer (current-buffer))
     ;; Font-lock often only fontifies the visible sections. This
     ;; ensures that the entire buffer is fontified before converting
     ;; it.
@@ -1284,39 +1310,65 @@ necessarily has emitted previous text."
           (state '())                   ; List of faces.
           (ansi-state e2ansi-null-ansi-state))
       (while
-          (progn
-            (setq pos (e2ansi-next-face-property-change pos))
-            ;; Stop at the beginning of each line, when in
-            ;; line-by-line mode.
-            (when (and e2ansi-line-by-line
-                       (not (eq last-pos (point-max))))
-              (let ((next-line-position (save-excursion
-                                          (goto-char last-pos)
-                                          (forward-line)
-                                          (point))))
-                (when (or (not pos)
-                          (< next-line-position pos))
-                  (setq pos next-line-position))))
-            pos)
+          ;; Here, `last-pos' and `pos' are equal except in the
+          ;; first iteration where `pos' is nil. This allows `n-f-p'
+          ;; to return point-min.
+          (setq pos (e2ansi-min
+                     (e2ansi-next-face-property-change pos)
+                     ;; Start of next line.
+                     (and e2ansi-line-by-line
+                          (not (eq last-pos (point-max)))
+                          (save-excursion
+                            (goto-char last-pos)
+                            (forward-line)
+                            (point)))
+                     ;; End-of-line.
+                     (save-excursion
+                       (goto-char last-pos)
+                       (and (not (eolp))
+                            (or e2ansi-line-by-line
+                                (and (not (eq (nth 1 ansi-state) 'normal))))
+                            (line-end-position)))))
         (e2ansi-print last-pos pos dest)
         (setq last-pos pos)
-        (let ((faces (get-text-property pos 'face)))
-          (unless (listp faces)
-            (setq faces (list faces)))
-          (let ((new-state (e2ansi-ansi-state faces))
-                (force-reset nil))
-            (when (and e2ansi-line-by-line
-                       (save-excursion
-                         (goto-char pos)
+        (save-excursion
+          (goto-char pos)
+          (let ((faces (get-text-property pos 'face)))
+            (unless (listp faces)
+              (setq faces (list faces)))
+            (let ((new-state (e2ansi-ansi-state faces))
+                  (force-reset nil))
+              (when (and e2ansi-line-by-line
                          (and (bolp)
-                              (not (eobp)))))
-              (unless (equal ansi-state new-state)
-                (setq force-reset t))
-              (setq ansi-state e2ansi-null-ansi-state))
-            (e2ansi-emit-ansi-sequences ansi-state new-state force-reset dest)
-            (setq ansi-state new-state))))
+                              (not (eobp))))
+                (unless (equal ansi-state new-state)
+                  (setq force-reset t))
+                (setq ansi-state e2ansi-null-ansi-state))
+              (when (and (eolp)
+                         (or e2ansi-line-by-line
+                             (not (equal new-state e2ansi-null-ansi-state))))
+                (setq new-state e2ansi-null-ansi-state))
+              ;; Clear background color before newline, terminals don't
+              ;; seem to handle them well.
+              (when (eolp)
+                (setq new-state (cons (nth 0 new-state)
+                                      (cons 'normal
+                                            (nthcdr 2 new-state)))))
+              (e2ansi-emit-ansi-sequences
+               ansi-state new-state force-reset dest)
+              (setq ansi-state new-state)))))
       ;; Insert whatever is left after the last face change.
       (e2ansi-print last-pos (point-max) dest))))
+
+
+(defun e2ansi-string-to-ansi (str)
+  "Return the ansi representation of STR."
+  (with-temp-buffer                     ; Result buffer
+    (let ((dest (current-buffer)))
+      (with-temp-buffer                 ; Source buffer
+        (insert str)
+        (e2ansi-print-buffer (current-buffer) dest)))
+    (buffer-substring-no-properties (point-min) (point-max))))
 
 
 ;; Some basic facts:

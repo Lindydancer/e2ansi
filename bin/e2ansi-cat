@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 
-;; This is command line tool using Emacs in batch mode to render a
+;; This is a command line tool using Emacs in batch mode to render a
 ;; syntax highlighted version of the input files using ANSI escape
 ;; sequences.
 ;;

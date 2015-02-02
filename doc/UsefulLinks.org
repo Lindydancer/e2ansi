@@ -1,0 +1,9 @@
+* Windows
+
+** Install a color scheme in CMD.EXE:
+
+https://github.com/neilpa/cmd-colors-solarized
+
+** Old, interesting, ANSI-page:
+
+http://www.pixelbeat.org/docs/terminal_colours/

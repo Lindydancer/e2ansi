@@ -1,8 +1,8 @@
-[38;5;208m/*
-[38;5;208m * Example "Hello World" source file,
-[38;5;208m * written in C to demonstrade e2ansi,
-[38;5;208m * that provides Emacs powered syntax
-[38;5;208m * highlighting for terminals.
+[38;5;208m/*[0m
+[38;5;208m * Example "Hello World" source file,[0m
+[38;5;208m * written in C to demonstrade e2ansi,[0m
+[38;5;208m * that provides Emacs powered syntax[0m
+[38;5;208m * highlighting for terminals.[0m
 [38;5;208m */[0m
 
 [38;5;152m#include[0m [38;5;216m<stdio.h>[0m

@@ -28,6 +28,8 @@
 (require 'e2ansi-test)
 (require 'e2ansi-test-files)
 
-(ert t)
+(if noninteractive
+    (ert-run-tests-batch-and-exit)
+  (ert t))
 
 ;;; e2ansi-test-setup.el ends here
