@@ -5,7 +5,7 @@
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.0.3
+;; Version: 0.0.4
 ;; URL: https://github.com/Lindydancer/e2ansi
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -722,7 +722,8 @@ See `e2ansi-batch-options' for options."
                 (normal-mode))
             (unless (file-exists-p source)
               (e2ansi-user-error "File not found: %s" source))
-            (find-file source)))
+            (let ((large-file-warning-threshold nil))
+              (find-file source))))
         ;; Override major mode, if --mode was specified.
         (when e2ansi-batch-major-mode-name
           (let ((mode nil))
@@ -1303,7 +1304,12 @@ Return nil when applied to no non-nil arguments."
     ;; ensures that the entire buffer is fontified before converting
     ;; it.
     (if (and font-lock-mode
-             font-lock-defaults)
+             ;; Prevent clearing out face attributes explicitly
+             ;; inserted by functions like `list-faces-display'.
+             ;; (Font-lock mode is enabled, for some reason, in those
+             ;; buffers.)
+             (not (and (eq major-mode 'help-mode)
+                       (not font-lock-defaults))))
         (font-lock-fontify-region (point-min) (point-max)))
     (let ((last-pos (point-min))
           (pos nil)
