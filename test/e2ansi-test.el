@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'e2ansi)
+(require 'ert)
 
 (defface e2ansi-test-bold
   '((t :weight bold))
@@ -348,22 +349,6 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
 
 ;; --------------------
 
-(defface e2ansi-test-blue-green-face
-  '((t :foreground "blue"
-       :foreground "green"))
-  "")
-
-
-;;(let ((s "test1234"))
-;;  (set-text-properties 0 6 '(face (e2ansi-test-blue-green-face)) s)
-;;  (insert s))
-;;
-;; => Green
-;;
-;; Hence, if the same property occurs more than once, the last one
-;; counts.
-
-
 (defface e2ansi-test-inherit-underline-face
   '((t :inherit e2ansi-test-underline-face)) "")
 (defface e2ansi-test-inherit-red-face
@@ -413,8 +398,6 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
 ;; Hence, inherited values are overwritten, regardless of position in
 ;; the propoerty list.
 
-;; TODO: Don't use the underline face, instead create a new one.
-
 (defface e2ansi-test-theme-face1 '((t)) "")
 (defface e2ansi-test-theme-face2 '((t)) "")
 
@@ -456,7 +439,8 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
 
 
 (ert-deftest e2ansi-test-strings ()
-  (let ((plain "plain")
+  (let ((face-explorer-number-of-colors 8)
+        (plain "plain")
         (def (e2ansi-test-set-face "default" 'default))
         (red (e2ansi-test-set-face "red" 'e2ansi-test-red-face)))
     (should (equal (e2ansi-string-to-ansi plain) "plain"))
@@ -468,25 +452,13 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
 
 
 (ert-deftest e2ansi-test-face-spec ()
-  (should (equal (e2ansi-face-spec 'e2ansi-test-blue-green-face)
-                 '(:foreground "green")))
-  (should (equal (e2ansi-face-spec 'e2ansi-test-theme-face2)
-                 '(:underline nil)))
-  (should (equal (e2ansi-faces-spec '(e2ansi-test-red-face
-                                      e2ansi-test-blue-face))
-                 '(:foreground "red")))
-  (should (equal (e2ansi-ansi-state '(e2ansi-test-red-face
-                                      e2ansi-test-blue-face))
-                 '(1 normal normal normal normal)))
-  (should (equal (e2ansi-ansi-state '(e2ansi-test-theme-face2 underline))
-                 '(normal normal normal normal normal)))
-  )
-
-(ert-deftest e2ansi-test-plist ()
-  (should (equal (e2ansi-remove-plist-duplicates '()) '()))
-  (should (equal (e2ansi-remove-plist-duplicates '(:a 1)) '(:a 1)))
-  (should (equal (e2ansi-remove-plist-duplicates '(:a 1 :b 2)) '(:a 1 :b 2)))
-  (should (equal (e2ansi-remove-plist-duplicates '(:a 1 :a 2)) '(:a 2))))
+  (let ((face-explorer-number-of-colors 8))
+    (should (equal (e2ansi-ansi-state '(e2ansi-test-red-face
+                                        e2ansi-test-blue-face))
+                   '(1 normal normal normal normal)))
+    (should (equal (e2ansi-ansi-state '(e2ansi-test-theme-face2 underline))
+                   '(normal normal normal normal normal)))
+    ))
 
 
 (provide 'e2ansi-test)

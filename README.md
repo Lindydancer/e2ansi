@@ -1,7 +1,7 @@
 # e2ansi - Syntax highlighting support for `less`, powered by Emacs
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.0.4<br>
+*Version:* 0.1.0<br>
 *URL:* [https://github.com/Lindydancer/e2ansi](https://github.com/Lindydancer/e2ansi)<br>
 
 *e2ansi* (Emacs to ANSI) provides syntax highlighting support for
@@ -18,7 +18,7 @@ syntax highlighted. A nice side effect is that other conversions
 that Emacs normally performs, like uncompressing files, are also
 automatically applied.
 
-## Example
+### Example
 
 | Before                     | After                         |
 | ------                     | -----                         |

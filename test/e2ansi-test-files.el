@@ -1,4 +1,4 @@
-;;; e2ansi-test-files.el --- Regression test for Objc Font Lock.
+;;; e2ansi-test-files.el --- Regression test e2ansi.
 
 ;; Copyright (C) 2014,2015 Anders Lindgren
 
@@ -39,7 +39,7 @@
 (defun e2ansi-test-files-reference-file (file number-of-colors background)
   (concat file
           ".ansi"
-          "-" (if (eq number-of-colors :rgb8)
+          "-" (if (eq number-of-colors t)
                   "rgb8"
                 (number-to-string number-of-colors))
           "-" (symbol-name background)))
@@ -62,8 +62,8 @@ FILE.ansi-NUMBER-OF-COLORS-BACKGROUND."
            (with-current-buffer (find-file-noselect file)
              (let ((noninteractive nil))
                (font-lock-mode 1))
-             (let ((e2ansi-number-of-colors number-of-colors)
-                   (e2ansi-background-mode background))
+             (let ((face-explorer-number-of-colors number-of-colors)
+                   (face-explorer-background-mode background))
                (e2ansi-print-buffer (current-buffer) buffer)))
            (buffer-string)))
        (with-temp-buffer
@@ -80,13 +80,13 @@ FILE.ansi-NUMBER-OF-COLORS-BACKGROUND."
 (defun e2ansi-test-generate-reference-files ()
   "Generate reference files for file in current buffer."
   (interactive)
-  (dolist (number-of-colors '(8 16 256 :rgb8))
+  (dolist (number-of-colors '(8 16 256 t))
     (dolist (background '(dark light))
       (let ((reference-file
              (e2ansi-test-files-reference-file
               (buffer-file-name) number-of-colors background)))
-        (let ((e2ansi-number-of-colors number-of-colors)
-              (e2ansi-background-mode background))
+        (let ((face-explorer-number-of-colors number-of-colors)
+              (face-explorer-background-mode background))
           (e2ansi-write-file reference-file))))))
 
 
@@ -101,7 +101,7 @@ FILE.ansi-NUMBER-OF-COLORS-BACKGROUND."
 
 (ert-deftest e2ansi-file-test ()
   "Test e2ansi using known reference files."
-  (dolist (number-of-colors '(8 16 256 :rgb8))
+  (dolist (number-of-colors '(8 16 256 t))
     (dolist (background '(dark light))
       (dolist (file e2ansi-test-files)
         (should (e2ansi-test-file file number-of-colors background))))))

@@ -5,7 +5,8 @@
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.0.4
+;; Version: 0.1.0
+;; Package-Requires: ((face-explorer "0.0.3"))
 ;; URL: https://github.com/Lindydancer/e2ansi
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -447,20 +448,7 @@
 
 ;;; Code:
 
-
-(defvar e2ansi-number-of-colors
-  (if noninteractive
-      (if (string-match "-256color$" (getenv "TERM"))
-          256
-        ;; Note: There is no way to detect if the terminal support 8
-        ;; or 16 colors. Besides, the standard Emacs color scheme for
-        ;; 8 colors seems more polished than the one for 16 colors.
-        8)
-    256)
-  "Number of ANSI colors: 8, 16, 256, or :rgb24.
-
-This is used both when matching colors and when deciding which kind of
-ANSI sequences to use in output.")
+(require 'face-explorer)
 
 
 (defvar e2ansi-use-window-system-color-values nil
@@ -473,18 +461,6 @@ The advantage of using the window system color values is that the
 end result will be slightly more alike the colors used in an
 interactive Emacs. The disadvantage is that the result might be
 different than when generated in batch mode." )
-
-
-(defvar e2ansi-background-mode 'light
-  "Background mode used when selecting face specifications.
-
-Either `light' or `dark'.")
-
-
-(defvar e2ansi-color-class 'color
-  "Color class used when selecting face specifications.
-
-Either `color' or `grayscale'.")
 
 
 (defvar e2ansi-line-by-line t
@@ -625,19 +601,19 @@ ANSI escape sequences."
 (defvar e2ansi-batch-options
   '(("--colors" :arg
      (lambda (arg)
-       (setq e2ansi-number-of-colors
+       (setq face-explorer-number-of-colors
              (if (string= arg "rgb24")
-                 :rgb24
+                 t
                (string-to-number arg))))
      "Number of colors (8, 16, or 256), or 'rgb24' for 24 bit colors")
     ("--background-mode" :arg
      (lambda (arg)
-       (setq e2ansi-background-mode (intern arg)))
+       (setq face-explorer-background-mode (intern arg)))
      "Background mode, 'light' (default) or 'dark'")
     ("--color-class" :arg
      (lambda (arg)
-       (setq e2ansi-color-class (intern arg)))
-     "Color class, 'color' (default) or 'grayscale'")
+       (setq face-explorer-color-class (intern arg)))
+     "Color class, 'color' (default), 'grayscale', or 'mono'")
     ("--mode" :arg
      (lambda (arg)
        (setq e2ansi-batch-major-mode-name arg))
@@ -704,6 +680,8 @@ See `e2ansi-batch-options' for options."
     res))
 
 
+;; TODO: Rewrite in terms of the functions below.
+
 ;;;###autoload
 (defun e2ansi-batch-convert ()
   "Convert the remaining files on the command line to ANSI format."
@@ -719,6 +697,10 @@ See `e2ansi-batch-options' for options."
                              (insert "\n")
                              t)
                          (error nil)))
+                ;; Help `normal-mode' to pick the right major mode.
+                (let ((env (getenv "E2ANSI_FILE_NAME")))
+                  (when env
+                    (setq buffer-file-name env)))
                 (normal-mode))
             (unless (file-exists-p source)
               (e2ansi-user-error "File not found: %s" source))
@@ -750,145 +732,50 @@ See `e2ansi-batch-options' for options."
     (e2ansi-batch-usage)))
 
 
-;; ----------------------------------------------------------------------
-;; Face specifications
-;;
-
-;; As this package should be able to work in batch mode, where most
-;; color support doesn't exist. (Almost) all face spec handling has
-;; been reimplemented below, with the added twist that
-;; `e2ansi-number-of-colors', `e2ansi-background-mode', and
-;; `e2ansi-color-class' and used to decide which face spec to pick.
-
-(defun e2ansi-join-spec (spec1 spec2)
-  "Join SPEC1 and SPEC2, the latter takes precedence."
-  (while spec1
-    (let ((key (pop spec1))
-          (value (pop spec1)))
-      (unless (plist-member spec2 key)
-        (setq spec2 (cons key (cons value spec2))))))
-  spec2)
+(defun e2ansi-batch-write-to-file (file &optional mode dest-file)
+  (with-temp-buffer
+    (e2ansi-batch-convert-file file mode (current-buffer))
+    (write-region (point-min) (point-max) dest-file)))
 
 
-;; Note: Inherited faces only have a ((default :inherit other-face)).
-;; If no rule match, make sure the default rule is returned.
-(defun e2ansi-match-spec (specs &optional no-match-found)
-  (let ((res '())
-        (default-spec '())
-        (found nil)
-        (default-found nil))
-    (while specs
-      (let ((spec (pop specs)))
-        (let ((reqs (nth 0 spec))
-              (ok t))
-          (if (eq reqs 'default)
-              (progn
-                (setq default-found t)
-                (setq default-spec (cdr spec)))
-            (if (eq reqs t)
-                (setq reqs '()))
-            (while (and ok
-                        reqs)
-              (let ((req (pop reqs)))
-                (cond ((eq (nth 0 req) 'class)
-                       (setq ok (eq (nth 1 req) e2ansi-color-class)))
-                      ((eq (nth 0 req) 'min-colors)
-                       (setq ok (or (eq e2ansi-number-of-colors :rgb8)
-                                    (<= (nth 1 req) e2ansi-number-of-colors))))
-                      ((eq (nth 0 req) 'background)
-                       (setq ok (eq (nth 1 req) e2ansi-background-mode)))
-                      (t
-                       (setq ok nil)))))
-            (when ok
-              (setq found t)
-              (let ((atts (cdr spec)))
-                ;; In older Emacs versions (e.g. Emacs 23.3) SPEC as
-                ;; the form (DISPLAY ATTS) and in newer, like Emacs
-                ;; 24.4, (DISPLAY . ATTS).
-                (when (listp (car-safe atts))
-                  (setq atts (car atts)))
-                (setq res (e2ansi-join-spec default-spec atts)))
-              (setq specs nil))))))
-    (if found
-        res
-      (if default-found
-          default-spec
-        no-match-found))))
+(defun e2ansi-batch-convert-file (file &optional mode dest)
+  (if (file-exists-p file)
+      (let ((large-file-warning-threshold nil))
+        (with-temp-buffer
+          ;; Font-lock isn't activated on temporary buffers, i.e.
+          ;; buffers whose name start with a space.
+          (rename-buffer "*e2ansi*" 'unique)
+          (insert-file-contents file 'visit)
+          (normal-mode)
+          (e2ansi-batch-convert-buffer (current-buffer) mode dest)))
+    (e2ansi-user-error "File not found: %s" file)))
 
 
-(defun e2ansi-remove-plist-duplicates (plist)
-  "Remove duplicate properties from PLIST.
-Entries towards the of the the list take precedence."
-  (and plist
-       (let ((prop (nth 0 plist))
-             (rest (e2ansi-remove-plist-duplicates (cdr (cdr plist)))))
-         (if rest
-             (if (plist-member rest (car plist))
-                 ;; PROP already present.
-                 rest
-               ;; Keep prop. (Optimized to avoid re-consing the entire list.)
-               (if (eq rest (cdr (cdr plist)))
-                   plist
-                 (cons prop (cons (nth 1 plist) rest))))
-           plist))))
-
-
-;; This tries to mimic the logic in `face-spec-recalc', plus "inherit"
-;; logic.
-(defun e2ansi-face-spec (face)
-  "The face specification for FACE suitable to be rendered as ANSI.
-
-See `e2ansi-number-of-colors' and `e2ansi-background-mode' for details."
-  (while (get face 'face-alias)
-    (setq face (get face 'face-alias)))
-  (let ((theme-faces (get face 'theme-face))
-	(no-match-found 0)
-        (theme-face-applied nil)
-        (spec nil))
-    (if theme-faces
-	(dolist (elt (reverse theme-faces))
-          (let ((new-spec (e2ansi-match-spec (cadr elt) no-match-found)))
-            (unless (eq new-spec no-match-found)
-              (setq spec (e2ansi-join-spec
-                          spec
-                          (e2ansi-remove-plist-duplicates new-spec)))
-              (setq theme-face-applied t)))))
-    (unless theme-face-applied
-      (setq spec (e2ansi-remove-plist-duplicates
-                  (e2ansi-match-spec (face-default-spec face)))))
-    (setq spec (e2ansi-join-spec spec (e2ansi-match-spec
-                                       (get face 'face-override-spec))))
-    (let ((parent (plist-get spec :inherit)))
-      (when parent
-        ;; TODO: Remove :inherit
-        (setq spec (e2ansi-join-spec (e2ansi-face-spec parent) spec))))
-    spec))
-
-
-;; TODO: Rename, too close to e2ansi-face-spec.
-(defun e2ansi-faces-spec (faces)
-  "The joined face specification for FACES.
-
-FACES is a list of faces (symbols) or naked faces, consisting of
-a property name followed by the value.
-
-For example: (error :underline t)
-
-Entries earlier in the list take precedence."
-  (let ((res-spec '()))
-    (while faces
-      (let ((face-spec
-             (if (keywordp (car faces))
-                 (let ((prop (pop faces))
-                       (value (pop faces)))
-                   (list prop value))
-               (e2ansi-face-spec (pop faces)))))
-        (while face-spec
-          (let ((prop (pop face-spec))
-                (value (pop face-spec)))
-            (unless (plist-member res-spec prop)
-              (setq res-spec (cons prop (cons value res-spec))))))))
-    res-spec))
+(defun e2ansi-batch-convert-buffer (buffer &optional mode dest)
+  (with-current-buffer buffer
+    ;; Override major mode, if --mode was specified.
+    (when mode
+      (let ((mode-symbol nil))
+        (dolist (s1 (list mode
+                          (concat mode "-mode")))
+          (dolist (s2 (list s1 (downcase s1)))
+            (let ((candidate (intern s2)))
+              (when (fboundp candidate)
+                (setq mode-symbol candidate)))))
+        (when mode-symbol
+          (funcall mode-symbol))))
+    (save-excursion
+      (goto-char (point-min))
+      ;; Don't highlight buffers containing existing ansi
+      ;; sequences.
+      ;;
+      ;; TODO: Implement some kind of "--force" option to override
+      ;; this.
+      (if (search-forward "\x1b[" (point-max) t)
+          (princ (buffer-string) dest)
+        (let ((noninteractive nil))
+          (font-lock-mode 1))
+        (e2ansi-print-buffer (current-buffer) dest)))))
 
 
 ;; ----------------------------------------------------------------------
@@ -1018,13 +905,15 @@ The lower the value, the better."
 
 (defun e2ansi-try-color-number (number ground-mode)
   "True, if color NUMBER is included when searching for the closest color."
-  (cond ((eq e2ansi-number-of-colors 8)
+  (cond ((eq face-explorer-number-of-colors 8)
          (< number 8))
-        ((eq e2ansi-number-of-colors 16)
+        ((eq face-explorer-number-of-colors 16)
+         ;; In ANSI, 16 bit color mode provides 16 foreground colors
+         ;; but only 8 backaground colors.
          (< number (if (eq ground-mode :foreground)
                        16
                      8)))
-        ((eq e2ansi-number-of-colors 256)
+        ((eq face-explorer-number-of-colors 256)
          ;; The color number of the basic 16 colors vary between
          ;; terminals, so they are not included when trying to find
          ;; the best matched color.
@@ -1040,7 +929,7 @@ The lower the value, the better."
 
 This does not inspect the basic 16 ANSI colors as their color
 values are not well defined."
-  (let* ((key (list name ground-mode e2ansi-number-of-colors))
+  (let* ((key (list name ground-mode face-explorer-number-of-colors))
          (pair (assoc key e2ansi-closest-color-number-cache))
          (debug nil))
     (if pair
@@ -1051,7 +940,7 @@ values are not well defined."
             best-score)
         (when debug
           (message "Target RGB: %s" rgb-values))
-        (while (< i e2ansi-number-of-colors)
+        (while (< i face-explorer-number-of-colors)
           (when (e2ansi-try-color-number i ground-mode)
             (let ((candidate-rgb-values (e2ansi-ansi-color-values i)))
               (let ((score (e2ansi-score-rgb-values candidate-rgb-values
@@ -1086,7 +975,7 @@ is the frame to use."
                              "unspecified-fg"))))
         color
       ;; Batch mode:
-      (if (eq (eq e2ansi-background-mode 'light)
+      (if (eq (eq face-explorer-background-mode 'light)
               is-background)
           "white"
         "black"))))
@@ -1095,7 +984,8 @@ is the frame to use."
 (defun e2ansi-color-number (name ground-mode)
   "The ANSI color number, or the color values, that corresponds to NAME."
   (and name
-       (if (eq e2ansi-number-of-colors :rgb8)
+       (if (or (eq face-explorer-number-of-colors t)
+               (> face-explorer-number-of-colors 256))
            (e2ansi-color-values name)
          (let ((pair (assoc name e2ansi-colors)))
            (cond (pair
@@ -1111,8 +1001,8 @@ is the frame to use."
   (and name
        (progn
          (setq name (tty-color-canonicalize name))
-         (let ((override-entry (assoc (list e2ansi-number-of-colors
-                                            e2ansi-background-mode)
+         (let ((override-entry (assoc (list face-explorer-number-of-colors
+                                            face-explorer-background-mode)
                                       e2ansi-color-override-alist)))
            (when override-entry
              (let ((pair (assoc name (cdr override-entry))))
@@ -1136,7 +1026,8 @@ UNDERLINE), where the FOREGROUND and BACKGROUND is the ANSI color
 number, a color value, or nil, WEIGHT is `bold' `light', or
 `normal'. SLANT is `normal' or `italic', and UNDERLINE is a
 non-nil value or `normal'."
-  (let ((spec (e2ansi-faces-spec faces)))
+  (let ((spec
+         (face-explorer-face-prop-attributes-for-fictitious-display faces)))
     (let ((weight (plist-get spec :weight))
           (slant  (plist-get spec :slant)))
       ;; Normalize weight.
@@ -1147,17 +1038,10 @@ non-nil value or `normal'."
       ;; Normalize slant
       (unless (memq slant '(nil normal))
         (setq slant 'italic))
-      ;; TODO: `underline' is never used, check why!!!
-      (let ((underline              ; nil, normal, or t.
-             (let ((underline-rest (plist-member spec :underline)))
-               (and underline-rest
-                    (if (eq (nth 1 underline-rest) t)
-                        t
-                      'normal))))
-            (foreground (e2ansi-color-number-or-normal
+      (let ((foreground (e2ansi-color-number-or-normal
                          (plist-get spec :foreground)
                          :foreground)))
-        (when (and (eq e2ansi-number-of-colors 16)
+        (when (and (eq face-explorer-number-of-colors 16)
                    (numberp foreground)
                    (>= foreground 8))
           (setq foreground (- foreground 8))
@@ -1300,17 +1184,7 @@ Return nil when applied to no non-nil arguments."
 (defun e2ansi-print-buffer (&optional buffer dest)
   "Convert content of BUFFER to ANSI and print to DEST."
   (with-current-buffer (or buffer (current-buffer))
-    ;; Font-lock often only fontifies the visible sections. This
-    ;; ensures that the entire buffer is fontified before converting
-    ;; it.
-    (if (and font-lock-mode
-             ;; Prevent clearing out face attributes explicitly
-             ;; inserted by functions like `list-faces-display'.
-             ;; (Font-lock mode is enabled, for some reason, in those
-             ;; buffers.)
-             (not (and (eq major-mode 'help-mode)
-                       (not font-lock-defaults))))
-        (font-lock-fontify-region (point-min) (point-max)))
+    (face-explorer-fontify-buffer)
     (let ((last-pos (point-min))
           (pos nil)
           (state '())                   ; List of faces.
@@ -1320,7 +1194,7 @@ Return nil when applied to no non-nil arguments."
           ;; first iteration where `pos' is nil. This allows `n-f-p'
           ;; to return point-min.
           (setq pos (e2ansi-min
-                     (e2ansi-next-face-property-change pos)
+                     (face-explorer-next-face-property-change pos)
                      ;; Start of next line.
                      (and e2ansi-line-by-line
                           (not (eq last-pos (point-max)))
@@ -1339,9 +1213,7 @@ Return nil when applied to no non-nil arguments."
         (setq last-pos pos)
         (save-excursion
           (goto-char pos)
-          (let ((faces (get-text-property pos 'face)))
-            (unless (listp faces)
-              (setq faces (list faces)))
+          (let ((faces (face-explorer-face-text-props-at pos)))
             (let ((new-state (e2ansi-ansi-state faces))
                   (force-reset nil))
               (when (and e2ansi-line-by-line
@@ -1375,55 +1247,6 @@ Return nil when applied to no non-nil arguments."
         (insert str)
         (e2ansi-print-buffer (current-buffer) dest)))
     (buffer-substring-no-properties (point-min) (point-max))))
-
-
-;; Some basic facts:
-;;
-;; (get-text-property (point-max) ...) always return nil. To check the
-;; last character in the buffer, use (- (point-max) 1).
-;;
-;; If a text has more than one face, the first one in the list
-;; takes precedence, when being viewed in Emacs.
-;;
-;;   (let ((s "ABCDEF"))
-;;      (set-text-properties 1 4
-;;        '(face (font-lock-warning-face font-lock-variable-name-face)) s)
-;;      (insert s))
-;;
-;;   => ABCDEF
-;;
-;; Where DEF is drawn in "warning" face.
-
-
-(defun e2ansi-next-face-property-change (pos)
-  "Next position after POS where the `face' property change.
-
-If POS is nil, also include `point-min' in the search.
-If last character contains a face property, return `point-max'."
-  (if (equal pos (point-max))
-      ;; Last search returned `point-max'. There is no more to search
-      ;; for.
-      nil
-    (if (and (null pos)
-             (get-text-property (point-min) 'face))
-        ;; `pos' is `nil' and the character at `point-min' contains a
-        ;; face property, return `point-min'.
-        (point-min)
-      (unless pos
-        ;; Start from the beginning.
-        (setq pos (point-min)))
-      ;; Do a normal search. Compensate for that
-      ;; `next-single-property-change' does not include the end of the
-      ;; buffer, even when a face reach it.
-      (let ((res (next-single-property-change pos 'face)))
-        (if (and (not res)              ; No more found.
-                 (not (equal pos (point-max))) ; Not already at the end.
-                 (not (equal (point-min) (point-max))) ; Not an empty buffer.
-                 (get-text-property (- (point-max) 1) 'face))
-            ;; If a face property goes all the way to the end of the
-            ;; buffer, return `point-max'.
-            (point-max)
-          res)))))
 
 
 ;; ------------------------------------------------------------
