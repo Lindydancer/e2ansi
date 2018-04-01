@@ -37,7 +37,7 @@
 
 ;;; Code:
 
-(load (concat (file-name-directory load-file-name) "../e2ansi.el")
+(load (concat (file-name-directory (file-truename load-file-name)) "../e2ansi.el")
       nil :nomessage)
 
 (setq e2ansi-batch-help-text "\
