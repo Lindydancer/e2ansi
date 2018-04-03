@@ -37,7 +37,9 @@
 
 ;;; Code:
 
-(load (concat (file-name-directory load-file-name) "../e2ansi.el")
+;; `file-truename' enables people to symlink to this file.
+(load (concat (file-name-directory (file-truename load-file-name))
+              "../e2ansi.el")
       nil :nomessage)
 
 (setq e2ansi-batch-help-text "\

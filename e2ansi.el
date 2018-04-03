@@ -5,7 +5,7 @@
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Package-Requires: ((face-explorer "0.0.3"))
 ;; URL: https://github.com/Lindydancer/e2ansi
 

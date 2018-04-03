@@ -37,11 +37,9 @@
 
 ;;; Code:
 
-(load (concat (file-name-directory load-file-name) "../e2ansi.el")
-      nil :nomessage)
-
-(load (concat (file-name-directory load-file-name) "../e2ansi-list.el")
-      nil :nomessage)
+(let ((dir (file-name-directory (file-truename load-file-name))))
+  (load (concat dir "../e2ansi.el")      nil :nomessage)
+  (load (concat dir "../e2ansi-list.el") nil :nomessage))
 
 (setq e2ansi-batch-help-text "\
 Print various ANSI color related information.

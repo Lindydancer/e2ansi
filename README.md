@@ -1,7 +1,7 @@
 # e2ansi - Syntax highlighting support for `less`, powered by Emacs
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.1.0<br>
+*Version:* 0.1.1<br>
 *URL:* [https://github.com/Lindydancer/e2ansi](https://github.com/Lindydancer/e2ansi)<br>
 
 *e2ansi* (Emacs to ANSI) provides syntax highlighting support for
