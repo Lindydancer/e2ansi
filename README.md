@@ -1,7 +1,7 @@
 # e2ansi - Syntax highlighting support for `less`, powered by Emacs
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.1.1<br>
+*Version:* 0.1.2<br>
 *URL:* [https://github.com/Lindydancer/e2ansi](https://github.com/Lindydancer/e2ansi)<br>
 
 *e2ansi* (Emacs to ANSI) provides syntax highlighting support for
@@ -47,7 +47,7 @@ Command line options:
 * `--colors` -- Number of colors, or `rgb24` for full 24 bit
   colors. This is both used when mapping faces to actual colors and
   to decide the kind of ANSI sequences that is used.
-* `--color-class` -- Specify `color` or `grayscale`.
+* `--color-class` -- Specify `color`, `grayscale` or `mono`.
 * `--theme` -- Specify the color theme to use.
 * `--usage` -- Show help text.
 

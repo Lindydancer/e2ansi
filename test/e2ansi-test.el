@@ -408,6 +408,7 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
                         '(e2ansi-test-theme-face2 ((t :underline t))))
 
 (provide-theme 'e2ansi-test-theme1)
+(enable-theme 'e2ansi-test-theme1)
 
 
 (deftheme e2ansi-test-theme2 "")
@@ -417,6 +418,7 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
                         '(e2ansi-test-theme-face2 ((t :underline nil))))
 
 (provide-theme 'e2ansi-test-theme2)
+(enable-theme 'e2ansi-test-theme2)
 
 (deftheme e2ansi-test-theme3 "")
 
@@ -425,6 +427,8 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
                                                       :underline t))))
 
 (provide-theme 'e2ansi-test-theme3)
+(enable-theme 'e2ansi-test-theme3)
+
 
 ;; TODO: The :inherit property.
 

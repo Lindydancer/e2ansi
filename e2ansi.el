@@ -5,8 +5,8 @@
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.1.1
-;; Package-Requires: ((face-explorer "0.0.3"))
+;; Version: 0.1.2
+;; Package-Requires: ((face-explorer "0.0.4"))
 ;; URL: https://github.com/Lindydancer/e2ansi
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -69,7 +69,7 @@
 ;;   colors. This is both used when mapping faces to actual colors and
 ;;   to decide the kind of ANSI sequences that is used.
 ;;
-;; * `--color-class' -- Specify `color' or `grayscale'.
+;; * `--color-class' -- Specify `color', `grayscale' or `mono'.
 ;;
 ;; * `--theme' -- Specify the color theme to use.
 ;;
@@ -776,6 +776,14 @@ See `e2ansi-batch-options' for options."
         (let ((noninteractive nil))
           (font-lock-mode 1))
         (e2ansi-print-buffer (current-buffer) dest)))))
+
+
+(defun e2ansi-batch-print-setting ()
+  (dolist (pair `(("Number of colors"   . ,face-explorer-number-of-colors)
+                  ("Color class"        . ,face-explorer-color-class)
+                  ("Backgrounod mode"   . ,face-explorer-background-mode)
+                  ("Window system type" . ,face-explorer-window-system-type)))
+    (princ (format "%20s: %s\n" (car pair) (cdr pair)))))
 
 
 ;; ----------------------------------------------------------------------

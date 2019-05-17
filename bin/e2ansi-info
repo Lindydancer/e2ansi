@@ -45,29 +45,37 @@
 Print various ANSI color related information.
 
 Usage:
-    e2ansi-info [options] WHAT
+    e2ansi-info WHAT [options]
 
 Where WHAT is:
 
+    settings  Print face-exporer settings
     ansi16    Print color table of the 16 basic ANSI colors.
     ansi256   Print color tables of the 256 ANSI colors.
     faces     Print a selection of standard faces.
     mbg       Print text with background spanning multiple lines.
 ")
 
-(e2ansi-batch-parse-options)
-
 (if (null command-line-args-left)
     (e2ansi-batch-usage)
   (while command-line-args-left
     (let ((arg (pop command-line-args-left)))
-      (cond ((string= arg "ansi16")
+      (cond ((string= arg "settings")
+             (princ "Native settings:\n")
+             (e2ansi-batch-print-setting)
+             (princ "\n")
+             (e2ansi-batch-parse-options)
+             (princ "Settings after parsing options:\n")
+             (e2ansi-batch-print-setting))
+            ((string= arg "ansi16")
              (e2ansi-list-print-ansi-colors16))
             ((string= arg "ansi256")
              (e2ansi-list-print-ansi-colors256))
             ((string= arg "faces")
+             (e2ansi-batch-parse-options)
              (e2ansi-list-print-ansi-faces))
             ((string= arg "mbg")
+             (e2ansi-batch-parse-options)
              (e2ansi-list-print-multiline-text-with-background))
             (t
              (error "Unexpected argument: %s" arg))))))

@@ -132,6 +132,8 @@
 
 ;; TODO: Rename
 
+(require 'diff-mode)
+
 (defun e2ansi-list-list-faces ()
   "Display common faces.
 Return the buffer displaying the faces."
@@ -152,7 +154,11 @@ Return the buffer displaying the faces."
                        font-lock-type-face
                        font-lock-variable-name-face
                        font-lock-warning-face
-                       font-lock-doc-face))
+                       font-lock-doc-face
+                       diff-removed
+                       diff-refine-removed
+                       diff-added
+                       diff-refine-added))
         (let ((p (point)))
           (insert (symbol-name face))
           (font-lock-append-text-property p (point) 'face face))
