@@ -1,4 +1,4 @@
-#!/usr/bin/emacs --script
+#!/usr/bin/env -S emacs --script
 ;;; e2ansi-cat --- Output syntax highlighted versions using ANSI sequences
 
 ;; -*- emacs-lisp -*-

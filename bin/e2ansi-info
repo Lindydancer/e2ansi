@@ -1,4 +1,4 @@
-#!/usr/bin/emacs --script
+#!/usr/bin/env -S emacs --script
 ;;; e2ansi-info --- Print various things to help fine-tuning your terminal
 
 ;; -*- emacs-lisp -*-
