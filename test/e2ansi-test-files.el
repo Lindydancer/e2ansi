@@ -1,4 +1,4 @@
-;;; e2ansi-test-files.el --- Regression test e2ansi.
+;;; e2ansi-test-files.el --- Regression test `e2ansi'.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014,2015 Anders Lindgren
 

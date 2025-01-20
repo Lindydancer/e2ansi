@@ -1,4 +1,4 @@
-;;; e2ansi-magic.el --- Recognize major modes based on file content.
+;;; e2ansi-magic.el --- Recognize major modes based on file content.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015 Anders Lindgren
 
@@ -37,5 +37,7 @@
 
 (add-to-list 'magic-mode-alist
              '(e2ansi-magic-diff-p . diff-mode))
+
+(provide 'e2ansi-magic)
 
 ;;; e2ansi-magic.el ends here.

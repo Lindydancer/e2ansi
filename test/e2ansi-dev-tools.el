@@ -1,31 +1,43 @@
-;;; e2ansi-test.el --- Tests for e2ansi.
+;;; e2ansi-dev-tools.el --- Devlopment tools for `e2ansi'  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014 Anders Lindgren
+;; Copyright (C) 2025  Anders Lindgren
 
 ;; Author: Anders Lindgren
-;; Keywords: faces, languages
-;; URL: https://github.com/Lindydancer/e2ansi
-;; This program is free software: you can redistribute it and/or modify
+;; Keywords: faces, terminals
+
+;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
-;;
+
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-;;
+
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;; Test and support code for e2ansi.
+;; Small tools for developing `e2ansi' and ANSI eacape codes.
+;;
+;; * `e2ansi-test-list-test-faces'
+;;
+;; * `e2ansi-test-list-ansi-colors'
+;;
+;; * `e2ansi-test-list-collected-faces'
+;;
+;; * `e2ansi-test-show-example-text'
 
 ;;; Code:
 
 (require 'e2ansi)
-(require 'ert)
+
+
+;; --------------------------------------------------
+;; Tests for mixing attributes
+;;
 
 (defface e2ansi-test-bold
   '((t :weight bold))
@@ -58,7 +70,11 @@
   '((t :slant reverse-oblique))
   "Reverse oblique face to test e2ansi.")
 
+
 (defun e2ansi-test-list-test-faces ()
+  "Display a buffer with text that mix bold, italics, and underline.
+
+This buffer can be used as test input to e2ansi."
   (interactive)
   (with-output-to-temp-buffer "*E2ansi test*"
     (with-current-buffer standard-output
@@ -88,7 +104,11 @@
                       p (point) 'face 'e2ansi-test-reverse-oblique)))
               (when underline
                 (font-lock-append-text-property
-                 p (point) 'face 'e2ansi-test-underline))))))
+                 p (point) 'face 'e2ansi-test-underline)))
+            (insert (format "    Weight: %-10s Slant: %-20s Underline: %s\n"
+                            weight
+                            slant
+                            (if underline "Yes" "No"))))))
       (insert "\n")
       (message "%S" (buffer-substring (point-min) (point-max))))
     standard-output))
@@ -99,6 +119,10 @@
     (with-current-buffer buffer
       (e2ansi-write-file "e2ansi-test.ansi"))))
 
+
+;; --------------------------------------------------
+;; List ansi colors
+;;
 
 (defun e2ansi-test-make-string-with-color (s color)
   (setq s (concat s))
@@ -118,7 +142,7 @@
                                                 (/ (nth 2 rgb) 256)))))
 
 (defun e2ansi-test-list-ansi-colors ()
-  ""
+  "Display buffer with the ANSI 256 colors."
   (interactive)
   (let ((i 0))
     (with-output-to-temp-buffer "*AnsiColors*"
@@ -147,6 +171,9 @@ from the actual color used in the terminal.\n\n")
       (display-buffer (current-buffer)))))
 
 
+;; --------------------------------------------------
+;; List closest color
+;;
 
 (defun e2ansi-test-list-closest-color (colors)
   "List COLORS and the ansi color they are mapped to."
@@ -193,7 +220,8 @@ GROUND-MODE is either :foreground and :background, and BACKGROUND
         (dolist (entry spec)
           (let ((background-pair (and (not (memq (nth 0 entry) '(t default)))
                                       (assq 'background (nth 0 entry)))))
-            (when (and (member key (nth 0 entry))
+            (when (and (or (memq (nth 0 entry) '(t default))
+                           (member key (nth 0 entry)))
                        (or
                         (not background)
                         (not background-pair)
@@ -211,7 +239,7 @@ GROUND-MODE is either :foreground and :background, and BACKGROUND
                                          ground-mode
                                          background)
   (interactive
-   (list (read-number "Number of colors: " 88)
+   (list (read-number "Number of colors: " 256)
          (if (y-or-n-p "Foreground")
              :foreground
            :background)
@@ -231,16 +259,17 @@ GROUND-MODE is either :foreground and :background, and BACKGROUND
       (insert (number-to-string number-of-colors) "\n")
       (insert "number of colors")
       (when background
-        (insert "with a %s background" background))
+        (insert (format "with a %s background" background)))
       (insert ".\n\n")
-      (list-colors-print (e2ansi-test-collect-all-face-colors
-                          number-of-colors ground-mode background))
+      (e2ansi-test-list-closest-color
+       (e2ansi-test-collect-all-face-colors
+        number-of-colors ground-mode background))
       (set-buffer-modified-p nil)
       (setq truncate-lines t))))
 
 
 ;; ----------------------------------------
-;; Example ANSI output.
+;; Example ANSI output
 ;;
 
 (defun e2ansi-test-show-colors-between (ground-mode from
@@ -251,6 +280,7 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
   (while
       (progn
         (e2ansi-with-ansi-sequence
+            standard-output
          (e2ansi-emit-color-ansi-sequence from ground-mode)
          (dolist (arg extra)
            (e2ansi-emit-ansi-code arg)))
@@ -258,6 +288,7 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
                    (car (nth from e2ansi-colors))
                  (format "color-%d" from)))
         (e2ansi-with-ansi-sequence
+            standard-output
          (e2ansi-emit-ansi-code "0"))
         (terpri)
         (setq from (+ from 1))
@@ -303,168 +334,5 @@ If EXTRA is non-nil, emit it as an ANSI code in the ANSI sequence."
     (display-buffer (current-buffer))))
 
 
-
-;; ----------------------------------------------------------------------
-;; Test themes
-;;
-
-;; --------------------
-;; Check what happens when themes are applied on top of each other.
-;;
-
-;; Facts:
-;;
-;; Faces are specified using the `face' text property, the value is a
-;; face, a list containing faces and property/value pairs. Faces
-;; earlier in the list takes precedense.
-;;
-;; For example:
-;;
-;;    * font-lock-variable-name-face
-;;    * (font-lock-string-face font-lock-variable-name-face)
-;;    * (font-lock-string-face :underline t)
-;;
-
-(defface e2ansi-test-neutral-face '() "")
-
-(defface e2ansi-test-red-face '((t :foreground "red")) "")
-(defface e2ansi-test-blue-face '((t :foreground "blue")) "")
-
-(defface e2ansi-test-face '((t :weight bold)) "")
-(defface e2ansi-test-underline-face '((t :underline t)) "")
-
-;; It looks like the second one takes precedense.
-(defface e2ansi-test-illegalmulti-face '((t :foreground "red"
-                                            :foreground "blue"))
-  "Face with two :foreground attributes.")
-
-;;(let ((s "test1234"))
-;;  (set-text-properties 0 6 '(face (e2ansi-test-red-face
-;;                                   e2ansi-test-blue-face)) s)
-;;  (insert s))
-;;
-;; => Red
-;;
-;; Hence, the first face in the list takes precedence.
-
-;; --------------------
-
-(defface e2ansi-test-inherit-underline-face
-  '((t :inherit e2ansi-test-underline-face)) "")
-(defface e2ansi-test-inherit-red-face
-  '((t :inherit e2ansi-test-red-face)) "")
-
-
-;;(let ((s "test1234"))
-;;  (set-text-properties 0 6 '(face (e2ansi-test-inherit-underline-face
-;;                                   e2ansi-test-inherit-red-face)) s)
-;;  (insert s))
-;;
-;; => Red and underlined.
-;;
-;; Hence, the :inherit property is handled for each face separately
-;; (good).
-
-
-(defface e2ansi-test-double-inherit
-  '((t :inherit e2ansi-test-underline-face :inherit e2ansi-test-red-face))
-  "")
-
-
-;;(let ((s "test1234"))
-;;  (set-text-properties 0 6 '(face (e2ansi-test-double-inherit)) s)
-;;  (insert s))
-;;
-;; => Red
-;;
-;; Hence, a face can effectively only inherit from one face and only
-;; the last inherit takes effect.
-
-(defface e2ansi-test-green-green-face
-  '((t :foreground "green" :background "green")) "")
-
-(defface e2ansi-test-inherit-in-the-middle
-  '((t :foreground "red"
-       :inherit e2ansi-test-green-green-face
-       :background "red")) "")
-
-
-;;(let ((s "test1234"))
-;;  (set-text-properties 0 6 '(face (e2ansi-test-inherit-in-the-middle)) s)
-;;  (insert s))
-;;
-;; => Red red
-;;
-;; Hence, inherited values are overwritten, regardless of position in
-;; the propoerty list.
-
-(defface e2ansi-test-theme-face1 '((t)) "")
-(defface e2ansi-test-theme-face2 '((t)) "")
-
-(deftheme e2ansi-test-theme1 "")
-
-(custom-theme-set-faces 'e2ansi-test-theme1
-                        '(e2ansi-test-theme-face1 ((t :foreground "red")))
-                        '(e2ansi-test-theme-face2 ((t :underline t))))
-
-(provide-theme 'e2ansi-test-theme1)
-(enable-theme 'e2ansi-test-theme1)
-
-
-(deftheme e2ansi-test-theme2 "")
-
-(custom-theme-set-faces 'e2ansi-test-theme2
-                        '(e2ansi-test-theme-face1 ((t :background "blue")))
-                        '(e2ansi-test-theme-face2 ((t :underline nil))))
-
-(provide-theme 'e2ansi-test-theme2)
-(enable-theme 'e2ansi-test-theme2)
-
-(deftheme e2ansi-test-theme3 "")
-
-(custom-theme-set-faces 'e2ansi-test-theme3
-                        '(e2ansi-test-theme-face1 ((t :background "magenta"
-                                                      :underline t))))
-
-(provide-theme 'e2ansi-test-theme3)
-(enable-theme 'e2ansi-test-theme3)
-
-
-;; TODO: The :inherit property.
-
-
-;; ----------------------------------------------------------------------
-;; Ert test cases.
-;;
-
-(defun e2ansi-test-set-face (str &rest face-properties)
-  (set-text-properties 0 (length str) (cons 'face face-properties) str)
-  str)
-
-
-(ert-deftest e2ansi-test-strings ()
-  (let ((face-explorer-number-of-colors 8)
-        (plain "plain")
-        (def (e2ansi-test-set-face "default" 'default))
-        (red (e2ansi-test-set-face "red" 'e2ansi-test-red-face)))
-    (should (equal (e2ansi-string-to-ansi plain) "plain"))
-    ;; In some font-lock packages, the face `default' is used to
-    ;; ensure that later rules don't overwrite parts of a string. One
-    ;; such example is `cmake-font-lock'.
-    (should (equal (e2ansi-string-to-ansi def) "default"))
-    (should (equal (e2ansi-string-to-ansi red) "\x1b[31mred\x1b[0m"))))
-
-
-(ert-deftest e2ansi-test-face-spec ()
-  (let ((face-explorer-number-of-colors 8))
-    (should (equal (e2ansi-ansi-state '(e2ansi-test-red-face
-                                        e2ansi-test-blue-face))
-                   '(1 normal normal normal normal)))
-    (should (equal (e2ansi-ansi-state '(e2ansi-test-theme-face2 underline))
-                   '(normal normal normal normal normal)))
-    ))
-
-
-(provide 'e2ansi-test)
-
-;;; e2ansi-test.el ends here
+(provide 'e2ansi-dev-tools)
+;;; e2ansi-dev-tools.el ends here

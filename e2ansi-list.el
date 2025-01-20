@@ -1,4 +1,4 @@
-;;; e2ansi-list.el --- Print various ANSI-related information.
+;;; e2ansi-list.el --- Print various ANSI-related information.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014,2015 Anders Lindgren
 
@@ -39,7 +39,10 @@
 ;;
 
 (defun e2ansi-list-print-ansi-colors16 ()
-  "Print the 16 ANSI colors."
+  "Print the 16 ANSI colors.
+
+The output contains ANSI escape sequences as is intende to be
+viewed in a terminal window."
   (interactive)
   (let ((zero-to-eight '(0 1 2 3 4 5 6 7)))
     (princ "           ")
@@ -77,7 +80,10 @@
 ;;
 
 (defun e2ansi-list-print-ansi-colors256 (&optional dest)
-  "Print tables of the ANSI colors using the 256 color mode."
+  "Print tables of the ANSI colors using the 256 color mode.
+
+The output contains ANSI escape sequences as is intende to be
+viewed in a terminal window."
   (interactive)
   ;; ----------
   ;; Basic colors.
@@ -130,35 +136,34 @@
 ;; Print ANSI representation of common faces.
 ;;
 
-;; TODO: Rename
-
 (require 'diff-mode)
 
 (defun e2ansi-list-list-faces ()
   "Display common faces.
+
 Return the buffer displaying the faces."
   (with-output-to-temp-buffer "*Faces selection*"
     (with-current-buffer standard-output
       (setq font-lock-mode nil)
       (dolist (face '(default
-                       error
-                       trailing-whitespace
-                       font-lock-builtin-face
-                       font-lock-comment-face
-                       font-lock-function-name-face
-                       font-lock-negation-char-face
-                       font-lock-keyword-face
-                       font-lock-regexp-grouping-backslash
-                       font-lock-regexp-grouping-construct
-                       font-lock-string-face
-                       font-lock-type-face
-                       font-lock-variable-name-face
-                       font-lock-warning-face
-                       font-lock-doc-face
-                       diff-removed
-                       diff-refine-removed
-                       diff-added
-                       diff-refine-added))
+                      error
+                      trailing-whitespace
+                      font-lock-builtin-face
+                      font-lock-comment-face
+                      font-lock-function-name-face
+                      font-lock-negation-char-face
+                      font-lock-keyword-face
+                      font-lock-regexp-grouping-backslash
+                      font-lock-regexp-grouping-construct
+                      font-lock-string-face
+                      font-lock-type-face
+                      font-lock-variable-name-face
+                      font-lock-warning-face
+                      font-lock-doc-face
+                      diff-removed
+                      diff-refine-removed
+                      diff-added
+                      diff-refine-added))
         (let ((p (point)))
           (insert (symbol-name face))
           (font-lock-append-text-property p (point) 'face face))
@@ -167,7 +172,10 @@ Return the buffer displaying the faces."
 
 
 (defun e2ansi-list-print-ansi-faces (&optional dest)
-  "Print an ANSI redation of standard faces."
+  "Print common faces with ANSI escape codes.
+
+The output contains ANSI escape sequences as is intende to be
+viewed in a terminal window."
   (let ((buffer (e2ansi-list-list-faces)))
     (e2ansi-print-buffer buffer dest)))
 

@@ -1,0 +1,19 @@
+###############################################################################
+# Check that e2ansi-cat finds face-expolorer.
+#
+
+# Note: The expected output is a highlighted version of e2ansi-install-el.el.
+
+desc "Test install face-explorer"
+task("test_install_face_explorer") do
+  mkdir_p("testhome")
+  ENV["HOME"] = File.join(__dir__, "testhome")
+  puts "HOME=#{ENV['HOME']}"
+  puts "-" * 20
+  sh "emacs --batch -l e2ansi-install-fe.el"
+  puts "-" * 20
+  File.delete("e2ansi-cat-symlink")
+  sh "../bin/e2ansi-cat e2ansi-install-fe.el"
+  File.symlink("../bin/e2ansi-cat", "e2ansi-cat-symlink")
+  sh "./e2ansi-cat-symlink e2ansi-install-fe.el"
+end

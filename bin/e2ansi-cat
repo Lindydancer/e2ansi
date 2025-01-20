@@ -1,9 +1,7 @@
-#!/usr/bin/emacs --script
-;;; e2ansi-cat --- Output syntax highlighted versions using ANSI sequences
+#!/usr/bin/env -S emacs -Q --script
+;;; e2ansi-cat --- Output syntax highlighted files to terminal -*- emacs-lisp -*-
 
-;; -*- emacs-lisp -*-
-
-;; Copyright (C) 2014 Anders Lindgren
+;; Copyright (C) 2014,2025 Anders Lindgren
 
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
@@ -37,14 +35,22 @@
 
 ;;; Code:
 
+;; Ensure that the `e2ansi' modules are in the path.
+;;
 ;; `file-truename' enables people to symlink to this file.
-(load (concat (file-name-directory (file-truename load-file-name))
-              "../e2ansi.el")
-      nil :nomessage)
+(let ((dir (file-name-directory (file-truename load-file-name))))
+  (add-to-list 'load-path (concat dir "..")))
+
+(require 'e2ansi-load-init)
+
+;; Ensure that dependencies are found.
+(package-initialize)
+
+(require 'e2ansi)
 
 (setq e2ansi-batch-help-text "\
 Syntax highlight files using ANSI escape sequences using Emacs as
-the engine. See the file `e2ansi.el' for more information.
+the engine. See the file \"e2ansi.el\" for more information.
 
 Usage:
     emacs [...Emacs options...] -l bin/e2ansi-cat [options] file ...
@@ -53,7 +59,7 @@ Usage:
 
     e2ansi-cat [options] file ...
 
-When `file' is `-', standard input is read.")
+When \"file\" is \"-\", standard input is read.")
 
 (if (null command-line-args-left)
     (e2ansi-batch-usage)

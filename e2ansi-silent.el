@@ -1,4 +1,4 @@
-;;; e2ansi-silent.el --- Load this in batch mode to silence some messages.
+;;; e2ansi-silent.el --- Load in batch mode to silence some messages.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014 Anders Lindgren
 
@@ -69,5 +69,7 @@
 ;; Local Variables:
 ;; no-byte-compile: t
 ;; End:
+
+(provide 'e2ansi-silent)
 
 ;;; e2ansi-silent.el ends here.

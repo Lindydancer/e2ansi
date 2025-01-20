@@ -1,4 +1,4 @@
-;;; e2ansi-test-setup.el --- Setup and execute all tests.
+;;; e2ansi-test-setup.el --- Setup and execute all tests.  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 
@@ -21,11 +21,11 @@
       (file-name-directory load-file-name)
     default-directory))
 
-(dolist (dir '("." ".." "../../faceup"))
+(dolist (dir '("." ".." "../../faceup" "../../face-explorer"))
   (add-to-list 'load-path (concat e2ansi-test-setup-directory dir)))
 
 (require 'e2ansi)
-(require 'e2ansi-test)
+(require 'e2ansi-test-basic)
 (require 'e2ansi-test-files)
 
 (if noninteractive

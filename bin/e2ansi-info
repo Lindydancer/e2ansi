@@ -1,9 +1,7 @@
-#!/usr/bin/emacs --script
-;;; e2ansi-info --- Print various things to help fine-tuning your terminal
+#!/usr/bin/env -S emacs -Q --script
+;;; e2ansi-info --- Print face-related info to the terminal -*- emacs-lisp -*-
 
-;; -*- emacs-lisp -*-
-
-;; Copyright (C) 2014 Anders Lindgren
+;; Copyright (C) 2014,2025 Anders Lindgren
 
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
@@ -37,9 +35,18 @@
 
 ;;; Code:
 
+;; Ensure that the `e2ansi' modules are in the path.
+;;
+;; `file-truename' enables people to symlink to this file.
 (let ((dir (file-name-directory (file-truename load-file-name))))
-  (load (concat dir "../e2ansi.el")      nil :nomessage)
-  (load (concat dir "../e2ansi-list.el") nil :nomessage))
+  (add-to-list 'load-path (concat dir "..")))
+
+(require 'e2ansi-load-init)
+
+;; Ensure that dependencies are found.
+(package-initialize)
+
+(require 'e2ansi-list)
 
 (setq e2ansi-batch-help-text "\
 Print various ANSI color related information.
@@ -49,7 +56,7 @@ Usage:
 
 Where WHAT is:
 
-    settings  Print face-exporer settings
+    settings  Print face-explorer settings
     ansi16    Print color table of the 16 basic ANSI colors.
     ansi256   Print color tables of the 256 ANSI colors.
     faces     Print a selection of standard faces.
@@ -78,6 +85,6 @@ Where WHAT is:
              (e2ansi-batch-parse-options)
              (e2ansi-list-print-multiline-text-with-background))
             (t
-             (error "Unexpected argument: %s" arg))))))
+             (e2ansi-user-error "Unexpected subcommand: %s" arg))))))
 
 ;;; e2ansi-info ends here.
