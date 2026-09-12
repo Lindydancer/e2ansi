@@ -55,15 +55,44 @@
   "When non-nil, messages from `message' and `load' are suppressed.")
 
 
-(defadvice load (before e2ansi-load activate)
-  "When `e2ansi-silent-message' is non-nil, messages are silenced."
+;; ----------------------------------------
+;; Silence `message'
+;;
+
+(defun e2ansi-silent--maybe-silence-message (orig-fun &rest args)
+  "Call ORIG-FUN (`message') with ARGS, if `e2ansi-silent-message' is nil.
+
+When `e2ansi-silent-message' is non-nil, no message is emitted.
+
+Either way, return the formatted string, like `message' normally do.
+
+This is used as an advice on the `message' function."
+  (apply (if e2ansi-silent-message
+             #'format-message
+           orig-fun)
+         args))
+
+(advice-add 'message :around #'e2ansi-silent--maybe-silence-message)
+
+
+;; ----------------------------------------
+;; Silence `load'
+;;
+
+(defun e2ansi-silent--maybe-silence-load (orig-fun file
+                                                   &optional noerror nomessage
+                                                   &rest args)
+  "Call ORIG-FUN (`load') with FILE NOERROR NOMESSAGE and ARGS.
+
+When `e2ansi-silent-message' is non-nil, NOMESSAGE is set to t,
+silencing the load.
+
+This is used as an advice on the `load' function."
   (when e2ansi-silent-message
-    (ad-set-arg 1 t)))
+    (setq nomessage t))
+  (apply orig-fun file noerror nomessage args))
 
-
-(defadvice message (around e2ansi-message activate)
-  (unless e2ansi-silent-message
-    ad-do-it))
+(advice-add 'load :around #'e2ansi-silent--maybe-silence-load)
 
 
 ;; Local Variables:

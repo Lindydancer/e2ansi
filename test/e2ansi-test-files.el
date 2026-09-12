@@ -92,7 +92,7 @@ FILE.ansi-NUMBER-OF-COLORS-BACKGROUND."
 
 (defun e2ansi-test-files-generate ()
   "Create new reference files."
-  (interactive "P")
+  (interactive)
   (dolist (file e2ansi-test-files)
     (setq file (concat e2ansi-test-files-dir file))
     (with-current-buffer (find-file-noselect file)

@@ -1,8 +1,7 @@
 [31m/*[0m
-[31m * Example "Hello World" source file,[0m
-[31m * written in C to demonstrade e2ansi,[0m
-[31m * that provides Emacs powered syntax[0m
-[31m * highlighting for terminals.[0m
+[31m * Demonstration of "e2ansi" -- a tool[0m
+[31m * that exports the syntax highlighting[0m
+[31m * performed by Emacs to tools like "less".[0m
 [31m */[0m
 
 [1;34m#include[0m [32m<stdio.h>[0m

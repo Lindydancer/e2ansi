@@ -1,8 +1,7 @@
 /*
- * Example "Hello World" source file,
- * written in C to demonstrade e2ansi,
- * that provides Emacs powered syntax
- * highlighting for terminals.
+ * Demonstration of "e2ansi" -- a tool
+ * that exports the syntax highlighting
+ * performed by Emacs to tools like "less".
  */
 
 #include <stdio.h>

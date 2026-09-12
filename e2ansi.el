@@ -1,12 +1,12 @@
-;;; e2ansi.el --- Syntax highlighting for `less', powered by Emacs.  -*- lexical-binding: t; -*-
+;;; e2ansi.el --- Syntax highlighting for `less', powered by Emacs  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014,2015,2017,2025 Anders Lindgren
+;; Copyright (C) 2014,2015,2017,2025,2026 Anders Lindgren
 
 ;; Author: Anders Lindgren
 ;; Keywords: faces, languages
 ;; Created: 2014-12-07
-;; Version: 0.2.0
-;; Package-Requires: ((face-explorer "0.0.6"))
+;; Version: 0.2.1
+;; Package-Requires: ((emacs "25.1") (face-explorer "0.0.7"))
 ;; URL: https://github.com/Lindydancer/e2ansi
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -24,24 +24,24 @@
 
 ;;; Commentary:
 
-;; *e2ansi* (Emacs to ANSI) converts a text highlighted in Emacs to a
+;; *e2ansi* (Emacs to ANSI) converts a text highlighted by Emacs to a
 ;; text with ANSI escape codes, which can be displayed in a terminal
-;; window, with the highlighting still visible.
+;; window, with the highlighting visible.
 ;;
-;; The `e2ansi-cat' command line tool can be used to generate text
-;; with ANSI escape codes directly in the terminal. The actual syntax
-;; highlighting is performed by Emacs running in batch mode.
+;; The `e2ansi-cat' command line tool can be used to highlight text
+;; directly in the terminal.  The actual syntax highlighting is
+;; performed by Emacs running in batch mode.
 ;;
 ;; Pager applications like `more' and `less' can be configured to
 ;; automatically invoke `e2ansi-cat', so that all viewed files will be
-;; syntax highlighted. A nice side effect is that other conversions
+;; syntax highlighted.  A nice side effect is that other conversions
 ;; that Emacs normally performs, like uncompressing files, are also
 ;; automatically applied.
 ;;
-;; This package can highlight all languages that Emacs supports,
-;; either directly or via external packages. Since Emacs is exendible,
-;; you can easily add an Emacs major mode for any programming language
-;; or structured text.
+;; This package can highlight everything that Emacs supports,
+;; inclduing many programming and markup languages.  Since Emacs is
+;; extensible you can use third-party packages or implement support
+;; for your own language formats.
 ;;
 ;; Example:
 ;;
@@ -51,27 +51,106 @@
 
 ;; Quick install:
 ;;
-;;
-;; Emacs setup:
-;;
-;; Install the `e2ansi' package using the Emacs package manager.
+;; Install the `e2ansi' package using the Emacs package manager.  This
+;; installs the main package, all dependencies, and a number of
+;; command-line tools like `e2ansi-cat'.
 ;;
 ;; Optionally create an e2ansi-specific init file,
 ;; e.g. `~/.e2ansi'. (See below.)
+
+;; Integration with `less':
 ;;
+;; The pager applications `more' and `less' can be configured to use
+;; `e2ansi-cat' to highlight viewed files.  This is done by defining
+;; the `LESSOPEN' environment variable.
 ;;
-;; Shell setup for `less':
+;; Make sure that the `emacs' command is in the path.
+;;
+;; Semi-automatic setup:
 ;;
 ;; Run the Emacs command `e2ansi-display-shell-setup' and copy
-;; relevant lines to a suitable shell init file, like `~/.bashrc'.
+;; relevant lines to a suitable shell init file, like
+;; `~/.bashrc'.  (The output assumes that a bash-compatible shell is
+;; used.  The syntax might need to be adjusted for other shells.)
 ;;
-;; The output assumes that a bash-compatible shell is used. The syntax
-;; might need to be adjusted for other shells.
+;; Manual setup:
 ;;
-;; The Emacs package manager include the version number in the
-;; installation location of `e2ansi'. This, unfortunately, means that
-;; the shell configuration must be updated every time `e2ansi' is
-;; updated.
+;; Define the `LESSOPEN', `LESS', and `MORE' environment variables in
+;; your shell init file.  For example (replacing `PATH-TO-E2ANSI' with
+;; the location of the `e2ansi' module):
+;;
+;;     export "LESSOPEN=||-PATH-TO-E2ANSI/bin/e2ansi-cat %s"
+;;     export "LESS=-R"
+;;     export "MORE=-R"
+;;
+;; In the `LESSOPEN' environment variable `%s' is the placeholder for
+;; the file to highlight and the `||-' prefix says that the script can
+;; work in a pipe.
+;;
+;; The `-R' option in the `LESS' and `MORE' environment variables
+;; tells the tools to send ANSI sequences to the terminal.
+
+;; The *e2ansi* init file:
+;;
+;; When using Emacs in batch mode, Emacs does not read the user init
+;; file.  However, for *e2ansi*, it is often desirable to load the
+;; user init files, for example, to configure font-lock settings and
+;; add additional packages.
+;;
+;; When the command line tools `e2ansi-cat' and `e2ansi-info' are
+;; launched, they try to load the init files `.e2ansi' and
+;; `e2ansi-init.el' from the following locations:
+;;
+;; * The user home directory.
+;;
+;; * The `emacs' XDG config directory (typically `~/.config/emacs').
+;;
+;; * The user Emacs directory (typically `~/.emacs.d').
+;;
+;; This file can include configuration specific to *e2ansi*, or it can
+;; load the normal user init files.  This is a good place to specify
+;; display properties such as the background mode.
+;;
+;; For example:
+;;
+;;     ;;; .e2ansi --- Init file for e2ansi.  -*- emacs-lisp -*-
+;;     (require 'e2ansi-silent)
+;;     (require 'e2ansi-magic)
+;;     (setq face-explorer-background-mode 'dark)
+;;     (load "~/.emacs" nil t)
+;;     ;;; .e2ansi ends here
+;;
+;; Adapting init files to batch mode:
+;;
+;; As Emacs most often is used in interactive mode there is a risk
+;; that parts of the system or your init file doesn't work in batch
+;; mode.
+;;
+;; To exclude something when in batch mode, you can use:
+;;
+;;     (unless noninteractive
+;;       .. code not suitable for batch mode code goes here ... )
+
+;; The *e2ansi* modules:
+;;
+;; * `bin/e2ansi-cat' -- Command line tool to add highlighting a file
+;;   using ANSI escape codes.
+;;
+;; * `bin/e2ansi-info' -- Command line tool to display various
+;;   ANSI-related information.
+;;
+;; * `e2ansi.el' -- The rendering engine for ANSI escape codes.
+;;
+;; * `e2ansi-magic.el' -- Set up `magic-mode-alist' to recognize file
+;;   formats based on the content of files.  This is useful when using
+;;   `less' in pipes where Emacs can't use the file name extension to
+;;   select a suitable major mode.
+;;
+;; * `e2ansi-silent.el' -- Load this in batch mode to silence some
+;;   messages from init files.
+;;
+;; * `e2ansi-load-init.el' -- Support module for the command line
+;;   tools to load the *e2ansi* init file.
 
 ;; The `e2ansi-cat' command line tool:
 ;;
@@ -86,103 +165,46 @@
 ;;
 ;; Options:
 ;;
-;; * `--theme' -- Specify the color theme to use.
+;; * `--theme' -- Specify the Emacs color theme to use.
 ;;
-;; * `--usage' or `--help' -- Show help text. (Note: Unless `--help'
-;;   is preceeded by `--', Emacs will display its own help text.)
+;; * `--usage' or `--help' -- Show help text.  (Note: Unless `--help'
+;;   is preceded by `--', Emacs will display its own help text.)
 ;;
 ;; Options for display properties:
 ;;
 ;; * `--background-mode' -- Specify `light' or `dark' background mode.
 ;;
 ;; * `--colors' -- Number of colors, or `rgb24' for full 24 bit
-;;   colors. This is both used when parsing the `min-colors'
-;;   requirement in face definitions (c.f. `defface') and when
+;;   colors.  This is both used when parsing the `min-colors'
+;;   requirement in face definitions (c.f.  `defface') and when
 ;;   deciding the kind of ANSI escape codes that is used.
 ;;
 ;; * `--color-class' -- Specify one of the `color', `grayscale' or
-;;   `mono' face specification requirement (c.f. `defface').
-;;
-;; The *e2ansi* init file:
-;;
-;; When using Emacs in batch mode, Emacs reads the site init file but
-;; not the user init file. However, for *e2ansi*, it is often
-;; desirable to load the user init files, for example, to configure
-;; font-lock settings and add additional major modes.
-;;
-;; When the command line tools `e2ansi-cat' and `e2ansi-info' are
-;; launched, they try to load the init files `.e2ansi' and
-;; `e2ansi-init.el' from the following locations:
-;;
-;; * The user home directory.
-;;
-;; * The `emacs' XDG config directory (typically `~/.config/emacs').
-;;
-;; * The Emacs user directory (typically `~/.emacs.d').
-;;
-;; This file can include configuration specific to *e2ansi*, or it can
-;; load the normal user init files. This is a good place to specify
-;; display properties such as the background mode.
-;;
-;; For example:
-;;
-;;     ;;; .e2ansi --- Init file for e2ansi.  -*- emacs-lisp -*-
-;;     (require 'e2ansi-silent)
-;;     (require 'e2ansi-magic)
-;;     (setq face-explorer-background-mode 'dark)
-;;     (load "~/.emacs" nil t)
-;;     ;;; .e2ansi ends here
-;;
-;; Integration with `less':
-;;
-;; The shell pager commands `more' and `less' can be configured to use
-;; `e2ansi-cat' to highlight viewed files. This is done by defining
-;; the `LESSOPEN' environment variable with the name of a script and
-;; `%s' (which is substituted for the file name), the `||-' prefix
-;; says that the script can work in a pipe. In addition, the `MORE'
-;; and `LESS' environment variables should contain the `-R' option --
-;; without it the ANSI escape codes are not sent to the terminal. For
-;; example (in bash syntax):
-;;
-;;     export "LESSOPEN=||-PATH-TO-E2ANSI/bin/e2ansi-cat %s"
-;;     export "LESS=-R"
-;;     export "MORE=-R"
-;;
-;; In addition, the command `emacs' must be in the path.
-;;
-;; More about `less':
-;;
-;; The command line tool `less' is preinstalled on most systems. If it
-;; is missing or outdated on your system it's easy to download and
-;; build a new version from http://www.greenwoodsoftware.com/less
-;;
-;; The document [LessWindows](doc/LessWindows.md) describes how to
-;; build `less' using `cmake', a modern build system.
+;;   `mono' face specification requirement (c.f.  `defface').
 
-;; The *e2ansi* modules:
+;; The `e2ansi-info' command line tool:
 ;;
-;; * `e2ansi.el' -- The rendering engine for ANSI ecape codes.
+;; Syntax:
 ;;
-;; * `e2ansi-magic.el' -- Set up `magic-mode-alist' to recognize file
-;;   formats based on the content of files. This is useful when using
-;;   `less' in pipes where Emacs can't use the file name extension to
-;;   select a suitable major mode.
+;;     e2ansi-info WHAT [OPTIONS]
 ;;
-;; * `e2ansi-silent.el' -- Load this in batch mode to silence some
-;;   messages from init files.
+;; OPTIONS are the same as accepted by `e2ansi-cat'.
 ;;
-;; * `e2ansi-load-init.el' -- Support module for the command line
-;;   tools to load the *e2ansi* init file.
+;; Where WHAT can be:
 ;;
-;; * `bin/e2ansi-cat' -- Command line tool to add highligting a file
-;;   using ANSI escape codes.
+;; * `settings' -- Print the terminal setting of e2ansi.
 ;;
-;; * `bin/e2ansi-info' -- Print various ANSI-related information to
-;;   help you trim your ANSI environment.
+;; * `ansi16' -- Print a color table with the 16 basic colors.
+;;
+;; * `ansi256' -- Print a color table with the 256 color palette.
+;;
+;; * `faces' -- Print a selection of standard faces.
+;;
+;; * `mbg' -- Print text with background spanning multiple lines.
 
-;; Launching emacs script:
+;; Launching Emacs script:
 ;;
-;; In some cases it's not possible to launch Emacs command like tools
+;; In some cases it's not possible to launch Emacs command line tools
 ;; `e2ansi-cat' directly, for example when using MS-Windows.
 ;;
 ;; Instead, `emacs' can be used in match mode, for example:
@@ -192,67 +214,60 @@
 ;; Additional Emacs options, like `-Q' (suppress the site init file)
 ;; can be specified.
 
-;; Using *e2ansi* inside Emacs:
+;; The *e2ansi* Emacs module:
 ;;
-;; The following functions can be used in other applications:
+;; Emacs commands:
 ;;
 ;; * `e2ansi-write-file' -- Generate a file with ANSI escape codes.
 ;;
 ;; * `e2ansi-view-buffer' -- Display the content of the buffer, with
-;;   ANSI escape codes. (Typcailly, this doesn't look good, but it is
-;;   useful to see which ANSI escpe codes are generated.)
+;;   ANSI escape codes.  (Typically, this doesn't look good, but it is
+;;   useful to see which ANSI escape codes are generated.)
 ;;
-;; * `e2ansi-string-to-ansi' -- Convert a highlighted string to a
+;; Emacs functions and macros:
+;;
+;; * `e2ansi-string-to-ansi' -- Convert a string with Emacs faces to a
 ;;   string with ANSI escape codes.
+;;
+;; * `e2ansi-with-fictitious-display-as-terminal' -- Call block with
+;;   the face-explorer fictitious display macting the terminal.
 
 ;; The `face-explorer' library:
 ;;
-;; In batch mode, Emacs natively doesn't provide face
-;; attributes. Instead, *e2ansi* uses the `face-explorer' library to
-;; deduce the properties of faces, based on the underlying face
-;; definitions.
+;; In batch mode, Emacs natively doesn't provide face attributes.
+;; Instead, *e2ansi* uses the `face-explorer' library to deduce the
+;; properties of faces, based on the underlying face definitions.
 ;;
 ;; The following variables controls the display environment that
-;; `face-explorer' uses. The variables can, for example, be set using
-;; *e2ansi* command line options or in the *e2ansi* or Emacs init
+;; `face-explorer' uses.  The variables can, for example, be set using
+;; *e2ansi* command line options or in the *e2ansi* or the Emacs init
 ;; file.
 ;;
 ;; Each variable corresponds to a display property in face
 ;; specifications (see `defface').
 ;;
-;; * `face-explorer-background-mode' -- `light' or `dark'. This
+;; * `face-explorer-background-mode' -- `light' or `dark'.  This
 ;;   corresponds to the `background' display property.
 ;;
 ;; * `face-explorer-number-of-colors' -- Number of colors, e.g. 8, 16,
-;;   256, or t. Corresponds to the `min-color' display property. This
+;;   256, or t. Corresponds to the `min-color' display property.  This
 ;;   also is used to decide the kind of ANSI escape codes to use.
 ;;
 ;; * `face-explorer-color-class' -- `color', `grayscale', or
-;;   `mono'. This corresponds to the `class' display property.
+;;   `mono'.  This corresponds to the `class' display property.
 ;;
 ;; * `face-explorer-window-system-type' -- The window system
-;;   used. This can be a symbol, a list of symbols, or t to match any
-;;   type. Corresponds to the `type' display property.
-
-;; Adapting init files to batch mode:
-;;
-;; As Emacs most often is used in interactive mode there is a risk
-;; that parts of the system or your init file doesn't work in batch
-;; mode.
-;;
-;; To exclude something when in batch mode, you can use:
-;;
-;;     (unless noninteractive
-;;       .. original code goes here ... )
+;;   used.  This can be a symbol, a list of symbols, or t to match any
+;;   type.  Corresponds to the `type' display property.
 
 ;; Background:
 ;;
 ;; What is Emacs?:
 ;;
-;; Emacs is a the mother of all text editors. It originates from the
-;; 1970:s, but is still in active development. It runs under all major
+;; Emacs is a the mother of all text editors.  It originates from the
+;; 1970:s, but is still in active development.  It runs under all major
 ;; operating systems, including MS-Windows, macOS, and various
-;; UNIX-like systems like Linux. You can use normal windows, run it in
+;; UNIX-like systems like Linux.  You can use normal windows, run it in
 ;; a terminal window (great when working remotely), or use it to run
 ;; scripts in batch mode, which is how it is used by the command line
 ;; tools provided by this package.
@@ -264,42 +279,42 @@
 ;; There are many advantages:
 ;;
 ;; * Emacs has support for a vast range of programming languages and
-;;   other structured text formats. Many are provided by the basic
+;;   other structured text formats.  Many are provided by the basic
 ;;   Emacs distribution, others can be installed as separate packages.
 ;;
 ;; * Emacs is fast and accurate -- it is designed for interactive use,
 ;;   and provides advanced support for parsing programming languages
-;;   and other strucured text.
+;;   and other structured text.
 ;;
-;; * Emacs supports color themes. If you don't like the ones provided,
+;; * Emacs supports color themes.  If you don't like the ones provided,
 ;;   and can't find one on internet, you can easily write your own.
 ;;
-;; * Emacs is *extendible*. You can add an Emacs *major mode* for any
+;; * Emacs is *extensible*.  You can add an Emacs *major mode* for any
 ;;   structured format, or you can add a *minor mode* that can be used
-;;   together with existing major modes. Syntax highlighting in Emacs
+;;   together with existing major modes.  Syntax highlighting in Emacs
 ;;   is typically provided by *Font Lock rules*, which can range from
 ;;   using simple pattern matching to very complex code.
 
-;; ANSI escpe codes:
+;; ANSI escape codes:
 ;;
 ;; ANSI escape codes, formally known as ISO/IEC 6429, is a system used
 ;; by various physical terminals and console programs to, for example,
-;; to add colors attributes such as bold and italics to text.
+;; to add colors and attributes such as bold and italics to text.
 ;;
 ;; See [Wikipedia](http://en.wikipedia.org/wiki/ANSI_escape_code) for
 ;; more information.
 ;;
 ;; Colors:
 ;;
-;; Both foreground and background colors can be rendered. Note that
+;; Both foreground and background colors can be rendered.  Note that
 ;; faces with the same background as the default face is not rendered
-;; with a background.
+;; with an explicit background color.
 ;;
 ;; Four modes are supported:
 ;;
 ;; * 8 -- The eight basic ANSI colors.
 ;;
-;; * 16 -- The eight basic colors, plus 8 "bright" colors. These are
+;; * 16 -- The eight basic colors, plus 8 "bright" colors.  These are
 ;;   represented as "bold" versions of the above.
 ;;
 ;; * 256 -- Some modern terminal programs support a larger palette.
@@ -316,23 +331,26 @@
 ;;
 ;; * Underline
 
-;; Operating system notes:
+;; More about `less':
 ;;
-;; macOS:
+;; The pager application `less' is preinstalled on most systems.  If
+;; it is missing or outdated on your system it's easy to download and
+;; build a new version from http://www.greenwoodsoftware.com/less
 ;;
-;; On older versions of macOS an old version of Emacs was installed.
-;; This version was used when the `emacs' was specified on the command
-;; line (or in the `LESSOPEN' macro).
+;; The document [LessWindows](doc/LessWindows.md) describes how to
+;; build `less' on Windows using `cmake', a modern build system.
+
+;; Miscellaneous:
 ;;
-;; You can download a modern version from [Emacs For
-;; macOS](http://emacsformacos.com). Once installed, add it's path
-;; (typically `/Applications/Emacs.app/Contents/MacOS/Emacs') to the
-;; `PATH' environment variable.
+;; The Emacs package manager includes the version number in the
+;; installation location of `e2ansi'.  This, unfortunately, means that
+;; the shell configuration must be updated every time `e2ansi' is
+;; updated.
 
 ;; Gallery:
 ;;
 ;; All images are screen captures of `less' running in a terminal
-;; window. White or black backgrounds were used, even though some
+;; window.  White or black backgrounds were used, even though some
 ;; themes have other backgrounds, when used inside Emacs.
 ;;
 ;; Default 8 colors:
@@ -380,7 +398,7 @@ information in `color-name-rgb-alist'.
 
 The advantage of using the window system color values is that the
 end result will be slightly more alike the colors used in an
-interactive Emacs. The disadvantage is that the result might be
+interactive Emacs.  The disadvantage is that the result might be
 different than when generated in batch mode." )
 
 
@@ -388,7 +406,7 @@ different than when generated in batch mode." )
   "When non-nil, extra ANSI codes are emitted at the start of each line.
 
 The advantage with this is that the output is highlighted correctly
-even if only parts of it is printed to a terminal. In addition,
+even if only parts of it is printed to a terminal.  In addition,
 pager applications like `more' and `less' don't lose highlighting
 when scrolling.")
 
@@ -441,9 +459,32 @@ See `e2ansi-ansi-state' for details on ansi states.")
 ;;
 
 (defun e2ansi-user-error (format &rest args)
-  "Like `user-error' but dont emit a backtrace in batch mode."
+  "Like `user-error' but don't emit a backtrace in batch mode.
+
+FORMAT is a format string and ARGS arguments to format."
   (let ((backtrace-on-error-noninteractive nil))
     (apply #'user-error (concat "e2ansi: " format) args)))
+
+
+(defun e2ansi-format-message (string &rest objects)
+  "Call `format-message' with STRING and OBJECTS.
+
+This is used by `e2ansi-with-silent-messages' to override
+`message' when messages are silenced."
+  (apply #'format-message string objects))
+
+
+;; This is used to silence major modes like `sh-mode' that emits
+;; various messages when started.
+(defmacro e2ansi-with-silent-messages (&rest body)
+  "Execute BODY just like `progn' and silence calls to `message'."
+  `(if (advice-member-p #'e2ansi-format-message 'message)
+       ;; Protect against nested `e2ansi-with-silent-messages'.
+       (progn ,@body)
+     (advice-add 'message :override #'e2ansi-format-message)
+     (unwind-protect
+         (progn ,@body)
+       (advice-remove 'message #'e2ansi-format-message))))
 
 
 ;; ----------------------------------------------------------------------
@@ -469,7 +510,7 @@ Unless a name is given, the file will be named xxx.ansi, where
 xxx is the file name associated with the buffer.
 
 If CONFIRM is non-nil, ask for confirmation before overwriting an
-existing file. Interactively, confirmation is required unless you
+existing file.  Interactively, confirmation is required unless you
 supply a prefix argument."
   (interactive
    (let ((suggested-name (and (buffer-file-name)
@@ -522,16 +563,22 @@ Replace the path to the home directory with `~'."
 
 
 (defun e2ansi-emit-comment (lines)
+  "Insert LINES as a comment preceeded by a # character."
   (dolist (line (split-string lines "\n"))
     (insert "# " line "\n"))
   (insert "#\n"))
 
 ;;;###autoload
 (defun e2ansi-display-shell-setup ()
-  "Display a typical bash environment variable setup for `less'"
+  "Display a typical bash environment variable setup for `less'."
   (interactive)
   (let ((buf (get-buffer-create "*e2ansi-bash*")))
     (with-current-buffer buf
+      (sh-mode)
+      ;; Silence "Warning: the function 'sh-set-shell' might not be
+      ;; defined at runtime."
+      (with-no-warnings
+        (sh-set-shell "bash" t nil))
       (erase-buffer)
       (let ((emacs-cmd (or (car-safe command-line-args)
                            "emacs")))
@@ -579,8 +626,86 @@ executed directly, for example in MS-Windows.")
         (insert "# -R -- Emit raw bytes (needed to display ANSI sequences).\n")
         (insert "\n")
         (insert "export \"LESS=-R\"\n")
-        (insert "export \"MORE=-R\"\n")))
+        (insert "export \"MORE=-R\"\n"))
+      (view-mode)
+      (goto-char (point-min)))
     (display-buffer buf)))
+
+
+
+;; ----------------------------------------------------------------------
+;; Dedcue from terminal
+;;
+
+
+(defun e2ansi-terminal-fg-and-bg-color-numbers ()
+  "The color numbers used for the foreground and background.
+
+Return (FG . BG) where FG and BG are the ANSI color numbers of the
+foreground and background, respectively.
+
+The values are retrieved from the COLORFGBG environment variable.  When
+this variable is undefined the foreground is assumed to be black (0) and
+the background white (7)."
+  (let ((color-fgbg (getenv "COLORFGBG"))
+        ;; Defaults to black text on white background.
+        (res '(0 . 7)))
+    (when color-fgbg
+      (if (string-match "\\`\\([0-9]+\\);\\([0-9]+\\)\\'" color-fgbg)
+          (let ((fg (string-to-number (match-string 1 color-fgbg)))
+                (bg (string-to-number (match-string 2 color-fgbg))))
+            ;; Typically, this is a number in the range of 0 to 15.
+            ;; However, the limit is selected to match the range of
+            ;; `e2ansi-ansi-color-values'.
+            (when (and (<= fg 255)
+                       (<= bg 255))
+              (setq res (cons fg bg))))))
+    res))
+
+
+(defun e2ansi-terminal-background-mode ()
+  "Determine the background mode of the terminal.
+
+See `e2ansi-terminal-fg-and-bg-color-numbers'."
+  (let ((pair (e2ansi-terminal-fg-and-bg-color-numbers)))
+    (if (< (e2ansi-ansi-color-brightness (car pair))  ; Foreground
+           (e2ansi-ansi-color-brightness (cdr pair))) ; Background
+        'light
+      'dark)))
+
+
+(defun e2ansi-terminal-number-of-colors ()
+  "Estimate the number of colors a terminal supports.
+
+Return the number of colors, or t if the terminal supports full
+24-bit colors."
+  (let ((term (getenv "TERM")))
+    (if term
+        (cond ((string-match "-256color\\'" term) 256)
+              ;; Full RGB support.
+              ((string-match "-direct256\\'" term) t)
+              (t 8))
+      8)))
+
+
+(defun e2ansi-set-fictitious-display-as-terminal ()
+  "Set the face-explorer fictitious display to match the terminal."
+  (setq face-explorer-number-of-colors
+        (e2ansi-terminal-number-of-colors))
+  (setq face-explorer-window-system-type 'tty)
+  (setq face-explorer-color-class 'color)
+  (setq face-explorer-background-mode
+        (e2ansi-terminal-background-mode))
+  (setq face-explorer-match-supports-function
+        #'face-explorer-default-match-supports-function))
+
+
+(defmacro e2ansi-with-fictitious-display-as-terminal (&rest body)
+  "Run BODY with a face-explorer fictitious display to match the terminal."
+  `(face-explorer-with-fictitious-display
+    (e2ansi-set-fictitious-display-as-terminal)
+    ,@body))
+
 
 
 ;; ----------------------------------------------------------------------
@@ -662,7 +787,7 @@ Incorrect argument to --colors: \"%s\"" arg)))))
 When FUNCTION is nil, `user-error' is used.
 
 In batch mode `princ' prints on stdout, `message' and
-`user-error' on stdout. In addition `user-error' terminates the
+`user-error' on stdout.  In addition `user-error' terminates the
 process with an error code."
   ;; Silence the compiler in case `e2ansi-silent' hasn't been loaded.
   (defvar e2ansi-silent-message)
@@ -713,106 +838,60 @@ See `e2ansi-batch-options' for options."
         (e2ansi-user-error "Unknown command line option: \"%s\"" option)))))
 
 
-;; TODO: Rewrite in terms of the functions below.
-
 ;;;###autoload
 (defun e2ansi-batch-convert ()
   "Convert the remaining files on the command line to ANSI format."
-  (e2ansi-batch-parse-options)
-  (while command-line-args-left
-    (let ((source (pop command-line-args-left)))
-      (if (string= source "-")
-          (let ((buf (generate-new-buffer "*stdin*")))
-            (set-buffer buf)
-            (while (condition-case nil
-                       (let ((s (read-string "")))
-                         (insert s)
-                         (insert "\n")
-                         t)
-                     (error nil)))
-            ;; Help `normal-mode' to pick the right major mode.
-            (let ((env (getenv "E2ANSI_FILE_NAME")))
-              (when env
-                (setq buffer-file-name env)))
-            (normal-mode))
-        (unless (file-exists-p source)
-          (e2ansi-user-error "File not found: %s" source))
-        (let ((large-file-warning-threshold nil))
-          (find-file source))))
-    ;; Override major mode, if --mode was specified.
-    (when e2ansi-batch-major-mode-name
-      (let ((mode nil))
-        (dolist (s1 (list e2ansi-batch-major-mode-name
-                          (concat e2ansi-batch-major-mode-name "-mode")))
-          (dolist (s2 (list s1 (downcase s1)))
-            (let ((candidate (intern s2)))
-              (when (fboundp candidate)
-                (setq mode candidate)))))
-        (if mode
-            (funcall mode)
-          (e2ansi-user-error
-           "Unknown major mode: \"%s\"" e2ansi-batch-major-mode-name))))
-    (save-excursion
-      (goto-char (point-min))
-      ;; Don't highlight buffers containing existing ansi
-      ;; sequences.
-      ;;
-      ;; TODO: Implement some kind of "--force" option to override
-      ;; this.
-      (if (search-forward "\x1b[" (point-max) t)
-          (princ (buffer-string))
-        (let ((noninteractive nil))
-          (font-lock-mode 1))
-        (e2ansi-print-buffer (current-buffer))))))
-
-
-(defun e2ansi-batch-write-to-file (file &optional mode dest-file)
-  (with-temp-buffer
-    (e2ansi-batch-convert-file file mode (current-buffer))
-    (write-region (point-min) (point-max) dest-file)))
-
-
-(defun e2ansi-batch-convert-file (file &optional mode dest)
-  (if (file-exists-p file)
-      (let ((large-file-warning-threshold nil))
-        (with-temp-buffer
-          ;; Font-lock isn't activated on temporary buffers, i.e.
-          ;; buffers whose name start with a space.
-          (rename-buffer "*e2ansi*" 'unique)
-          (insert-file-contents file 'visit)
-          (normal-mode)
-          (e2ansi-batch-convert-buffer (current-buffer) mode dest)))
-    (e2ansi-user-error "File not found: %s" file)))
-
-
-(defun e2ansi-batch-convert-buffer (buffer &optional mode dest)
-  (with-current-buffer buffer
-    ;; Override major mode, if --mode was specified.
-    (when mode
-      (let ((mode-symbol nil))
-        (dolist (s1 (list mode
-                          (concat mode "-mode")))
-          (dolist (s2 (list s1 (downcase s1)))
-            (let ((candidate (intern s2)))
-              (when (fboundp candidate)
-                (setq mode-symbol candidate)))))
-        (when mode-symbol
-          (funcall mode-symbol))))
-    (save-excursion
-      (goto-char (point-min))
-      ;; Don't highlight buffers containing existing ansi
-      ;; sequences.
-      ;;
-      ;; TODO: Implement some kind of "--force" option to override
-      ;; this.
-      (if (search-forward "\x1b[" (point-max) t)
-          (princ (buffer-string) dest)
-        (let ((noninteractive nil))
-          (font-lock-mode 1))
-        (e2ansi-print-buffer (current-buffer) dest)))))
+  (e2ansi-with-fictitious-display-as-terminal
+   (e2ansi-batch-parse-options)
+   (while command-line-args-left
+     (let ((source (pop command-line-args-left)))
+       (if (string= source "-")
+           (let ((buf (generate-new-buffer "*stdin*")))
+             (set-buffer buf)
+             (while (condition-case nil
+                        (let ((s (read-string "")))
+                          (insert s)
+                          (insert "\n")
+                          t)
+                      (error nil)))
+             ;; Help `normal-mode' to pick the right major mode.
+             (let ((env (getenv "E2ANSI_FILE_NAME")))
+               (when env
+                 (setq buffer-file-name env)))
+             (e2ansi-with-silent-messages
+              (normal-mode)))
+         (unless (file-exists-p source)
+           (e2ansi-user-error "File not found: %s" source))
+         (let ((large-file-warning-threshold nil))
+           (e2ansi-with-silent-messages
+            (find-file source)))))
+     ;; Override major mode, if --mode was specified.
+     (when e2ansi-batch-major-mode-name
+       (let ((mode nil))
+         (dolist (s1 (list e2ansi-batch-major-mode-name
+                           (concat e2ansi-batch-major-mode-name "-mode")))
+           (dolist (s2 (list s1 (downcase s1)))
+             (let ((candidate (intern s2)))
+               (when (fboundp candidate)
+                 (setq mode candidate)))))
+         (if mode
+             (e2ansi-with-silent-messages
+              (funcall mode))
+           (e2ansi-user-error
+            "Unknown major mode: \"%s\"" e2ansi-batch-major-mode-name))))
+     (save-excursion
+       (goto-char (point-min))
+       ;; Don't highlight buffers containing existing ansi
+       ;; sequences.
+       (if (search-forward "\x1b[" (point-max) t)
+           (princ (buffer-string))
+         (let ((noninteractive nil))
+           (font-lock-mode 1))
+         (e2ansi-print-buffer (current-buffer)))))))
 
 
 (defun e2ansi-batch-print-setting ()
+  "Print the current e2ansi settings to standard output."
   (dolist (pair `(("Number of colors"   . ,face-explorer-number-of-colors)
                   ("Color class"        . ,face-explorer-color-class)
                   ("Backgrounod mode"   . ,face-explorer-background-mode)
@@ -850,6 +929,8 @@ See `e2ansi-batch-options' for options."
 (defun e2ansi-color-values (name)
   "Like `color-values' but work in batch mode as well.
 
+NAME is the name of a color.
+
 In batch mode, or when `e2ansi-use-window-system-color-values' is
 nil, the color values are based on `color-name-rgb-alist'."
   (if (and (not noninteractive)
@@ -882,7 +963,7 @@ nil, the color values are based on `color-name-rgb-alist'."
   "Color values of basic ANSI colors.
 
 Different terminal programs seem to use slightly different color
-values, and they are often user configurable. The color values
+values, and they are often user configurable.  The color values
 here correspond to the values used in xterm.")
 
 
@@ -931,6 +1012,15 @@ here correspond to the values used in xterm.")
          (nth (- number #xE8) e2ansi-greyscale-colors))))
 
 
+(defun e2ansi-ansi-color-brightness (number)
+  "The brightness of ANSI color NUMBER.
+
+The brightness is the sum of all RGB components and is intended
+to be used when comparing the brightness of two colors."
+  (apply '+ (e2ansi-ansi-color-values number)))
+
+
+
 (defun e2ansi-score-rgb-values (candidate-rgb wanted-rgb)
   "Return a value scoring how good CANDIDATE-RGB represents WANTED-RGB.
 The lower the value, the better."
@@ -949,7 +1039,7 @@ The lower the value, the better."
   "True, if color NUMBER is included when searching for the closest color.
 
 NUMBER is less than `face-explorer-number-of-colors' (unless the
-latter is t)."
+latter is t).  GROUND-MODE is either :foreground or :background."
   (cond ((or (eq face-explorer-number-of-colors t)
              (>= face-explorer-number-of-colors 256))
          ;; The color number of the basic 16 colors vary between
@@ -971,7 +1061,8 @@ latter is t)."
   "Find the nearest ANSI color to color NAME, in the ANSI 256 palette.
 
 If `face-explorer-number-of-colors' is at least 256, exclude the
-basic 16 ANSI colors as their color values are not well defined."
+basic 16 ANSI colors as their color values are not well defined.
+GROUND-MODE is either :foreground or :background."
   (let* ((number-of-colors (if (or (eq face-explorer-number-of-colors t)
                                    (> face-explorer-number-of-colors 256))
                                256
@@ -1009,7 +1100,7 @@ basic 16 ANSI colors as their color values are not well defined."
 (defun e2ansi-default-color (ground-mode &optional frame)
   "The name of the default color.
 
-GROUND-MODE is either :foreground or :background. Optional FRAME
+GROUND-MODE is either :foreground or :background.  Optional FRAME
 is the frame to use."
   (let* ((is-background (eq ground-mode :background))
          (color (frame-parameter frame (if is-background
@@ -1029,7 +1120,9 @@ is the frame to use."
 
 
 (defun e2ansi-color-number (name ground-mode)
-  "The ANSI color number, or the color values, that corresponds to NAME."
+  "The ANSI color number, or the color values, that corresponds to NAME.
+
+GROUND-MODE is either :foreground or :background."
   (and name
        (if (or (eq face-explorer-number-of-colors t)
                (> face-explorer-number-of-colors 256))
@@ -1044,7 +1137,11 @@ is the frame to use."
 
 
 (defun e2ansi-color-number-or-normal (name ground-mode)
-  "The color number, the color values, or `normal'."
+  "The color number, the color values, or `normal' of NAME.
+
+Return nil when NAME is nil.
+
+GROUND-MODE is either :foreground or :background."
   (and name
        (progn
          (setq name (tty-color-canonicalize name))
@@ -1095,7 +1192,6 @@ non-nil value or `normal'."
           (setq weight 'bold))
         (list
          (or foreground 'normal)
-         ;; the function call never returns nil, drop the or (check this)
          (or (e2ansi-color-number-or-normal
               (plist-get spec :background)
               :background)
@@ -1111,8 +1207,10 @@ non-nil value or `normal'."
 
 (defmacro e2ansi-with-ansi-sequence (dest &rest body)
   "Create block where any number of ANSI codes could be emitted.
-Evaluates BODY. Emit one ANSI sequence consisting of all ANSI
-codes passed to `e2ansi-emit-ansi-code'."
+Evaluates BODY.  Emit one ANSI sequence consisting of all ANSI
+codes passed to `e2ansi-emit-ansi-code'.
+
+DEST is a valid destination to print to, typically a buffer."
   (declare (indent 1))
   `(let ((e2ansi-with-ansi-sequence-destination ,dest)
          (e2ansi-seen-ansi-sequence nil))
@@ -1128,10 +1226,10 @@ codes passed to `e2ansi-emit-ansi-code'."
 
 
 (defun e2ansi-emit-ansi-code (code)
-  "Emit an ANSI escape code to `standard-output'.
+  "Emit the ANSI escape code CODE to `standard-output'.
 
 This is assumed to be called from within the body of
-`e2ansi-with-ansi-sequence'. This ANSI escape code can be
+`e2ansi-with-ansi-sequence'.  This ANSI escape code can be
 combined using the semicolon ANSI syntax with other escape codes
 emitted from the same block."
   (if e2ansi-seen-ansi-sequence
@@ -1176,7 +1274,7 @@ GROUND-MODE is :foreground or :background."
 (defun e2ansi-emit-ansi-sequences (old-state new-state force-reset dest)
   "Print ANSI sequence to go from OLD-STATE to NEW-STATE to DEST.
 
-If FORCE-START is non-nil, don't assume that the output terminal
+If FORCE-RESET is non-nil, don't assume that the output terminal
 necessarily has emitted previous text."
   (when (or force-reset
             (not (equal old-state new-state)))
@@ -1216,7 +1314,8 @@ necessarily has emitted previous text."
 
 
 (defun e2ansi-min (&rest args)
-  "Like `min' but ignores nil arguments.
+  "Like `min' but nil arguments in ARGS are ignored.
+
 Return nil when applied to no non-nil arguments."
   (let ((res nil))
     (dolist (value args)

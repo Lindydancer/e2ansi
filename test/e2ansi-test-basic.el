@@ -223,6 +223,81 @@
                    196))))
 
 
+;; ----------------------------------------
+;; Terminal detection
+;;
+
+(ert-deftest e2ansi-test-detect-terminal ()
+  (let ((process-environment '()))
+    (e2ansi-with-fictitious-display-as-terminal
+     (should (equal face-explorer-number-of-colors 8))
+     (should (equal face-explorer-background-mode 'light))))
+  (let ((process-environment '("TERM=xterm-256color")))
+    (e2ansi-with-fictitious-display-as-terminal
+     (should (equal face-explorer-number-of-colors 256))
+     (should (equal face-explorer-background-mode 'light))))
+  (let ((process-environment '("COLORFGBG=0;7")))
+    (e2ansi-with-fictitious-display-as-terminal
+     (should (equal face-explorer-number-of-colors 8))
+     (should (equal face-explorer-background-mode 'light))))
+  (let ((process-environment '("COLORFGBG=7;0")))
+    (e2ansi-with-fictitious-display-as-terminal
+     (should (equal face-explorer-number-of-colors 8))
+     (should (equal face-explorer-background-mode 'dark))))
+  nil)
+
+
+;; ----------------------------------------
+;; Silencing messages
+;;
+
+(defvar e2ansi-test-messages '()
+  "Messages emitted during testing.")
+
+(defun e2ansi-test-log-messages (format-string &rest args)
+  "Save messages to `e2ansi-test-messages'.
+
+See `message' for FORMAT-STRING and ARGS."
+  (setq e2ansi-test-messages
+        (nconc e2ansi-test-messages
+               (list (apply #'format-message format-string args)))))
+
+(ert-deftest e2ansi-test-message ()
+  (unwind-protect
+      (progn
+        ;; Record messages emitted in this test.
+        (advice-add 'message :before #'e2ansi-test-log-messages)
+
+        (let ((e2ansi-test-messages '()))
+          (message "TEST")
+          (should (equal e2ansi-test-messages '("TEST"))))
+
+        (let ((e2ansi-test-messages '()))
+          (e2ansi-with-silent-messages
+           (message "TEST"))
+          (should (equal e2ansi-test-messages '())))
+
+        ;; Check that only messages emitted in the body of
+        ;; `e2ansi-with-silent-messages' are silenced.
+        (let ((e2ansi-test-messages '()))
+          (message "ALPHA")
+          (e2ansi-with-silent-messages
+           (message "BETA"))
+          (message "GAMMA")
+          (should (equal e2ansi-test-messages '("ALPHA" "GAMMA"))))
+
+        ;; Check nested calls to `e2ansi-with-silent-messages'.
+        (let ((e2ansi-test-messages '()))
+          (e2ansi-with-silent-messages
+           (message "ALPHA")            ; Inside the outer `e2ansi-w-s-m'.
+           (e2ansi-with-silent-messages
+            (message "BETA"))           ; Inside both `e2ansi-w-s-m'.
+           (message "GAMMA"))           ; Inside the outer `e2ansi-w-s-m'.
+          (message "EPSILON")           ; Not inside any `e2ansi-w-s-m'.
+          (should (equal e2ansi-test-messages '("EPSILON")))))
+
+    (advice-remove 'message #'e2ansi-test-log-messages)))
+
 (provide 'e2ansi-test-basic)
 
 ;;; e2ansi-test.el ends here
