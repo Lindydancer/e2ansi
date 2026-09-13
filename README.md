@@ -1,7 +1,7 @@
 # e2ansi - Syntax highlighting for `less`, powered by Emacs
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.2.1<br>
+*Version:* 0.2.2<br>
 *URL:* [https://github.com/Lindydancer/e2ansi](https://github.com/Lindydancer/e2ansi)<br>
 
 *e2ansi* (Emacs to ANSI) converts a text highlighted by Emacs to a
@@ -45,6 +45,11 @@ The pager applications `more` and `less` can be configured to use
 the `LESSOPEN` environment variable.
 
 Make sure that the `emacs` command is in the path.
+
+The Emacs package manager includes the version number in the
+installation location of `e2ansi`.  This, unfortunately, means that
+the shell configuration must be updated every time `e2ansi` is
+updated.
 
 ### Semi-automatic setup
 
@@ -284,6 +289,16 @@ Attributes:
 * Italics
 * Underline
 
+## Co-existing with `lesspipe`
+
+There are other applications that use the `LESSOPEN` environment
+variable, most notably [lesspipe](https://lesspipe.org).
+
+As of version 2.25 of *lesspipe*, it can be configured to used
+*e2ansi* to highlight source files, while other features of
+lesspipe are retained.  Simply set the environment variable
+`LESSCOLORIZER` to `e2ansi-cat` to accomplish this.
+
 ## More about `less`
 
 The pager application `less` is preinstalled on most systems.  If
@@ -292,13 +307,6 @@ build a new version from http://www.greenwoodsoftware.com/less
 
 The document [LessWindows](doc/LessWindows.md) describes how to
 build `less` on Windows using `cmake`, a modern build system.
-
-## Miscellaneous
-
-The Emacs package manager includes the version number in the
-installation location of `e2ansi`.  This, unfortunately, means that
-the shell configuration must be updated every time `e2ansi` is
-updated.
 
 ## Gallery
 
